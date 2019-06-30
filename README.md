@@ -18,7 +18,7 @@ A package based on Golang and MongoDB for quickly building HTTP Restful services
 
 ## Feature Overview
 
-- Define the structure of the data resource (including json and bson2 tags), then you can implement the CURD service of HTTP+JSON. The protocol is as follows:
+- Define the structure of the data resource (including json and bson tags), then you can implement the CURD service of HTTP+JSON. The protocol is as follows:
 
 | HTTP Method | Path | URL params | Explain |
 |------|-----|------|-----|
@@ -27,7 +27,7 @@ A package based on Golang and MongoDB for quickly building HTTP Restful services
 | PATCH | /{biz}/{id} | seq | update data by id |
 | DELETE | /{biz}/{id} | - | delete data by id |
 | GET | /{biz}/{id} | - | get data by id |
-| GET | /{biz} | page<br/> size<br/>  filter<br/>  range<br/>  in<br/> nin<br/> all<br/> search<br/>  order<br/>select | get list of data:<br/>page=1<br/>size=10<br/>filter={"star":5, "city":"shenzhen"}<br/>range={"age":{"gt":20, "lt":40}}<br/>in={"keywords":["blue", "red"]}<br/>nin={"keywords":["blue", "red"]}<br/>all={"keywords":["blue", "red"]}<br/>search=hello<br/>order=["+age", "-time"]<br/>select=["id", "name", "age"]<br/>|
+| GET | /{biz} | page<br/> size<br/>  filter<br/>  range<br/>  in<br/> nin<br/> all<br/> search<br/>  order<br/>select | get list of data:<br/>page=1<br/>size=10<br/>filter={"star":5, "city":"shenzhen"}<br/>range={"age":{"gt":20, "lt":40}}<br/>in={"color":["blue", "red"]}<br/>nin={"color":["blue", "red"]}<br/>all={"color":["blue", "red"]}<br/>search=hello<br/>order=["+age", "-time"]<br/>select=["id", "name", "age"]<br/>|
 
 - When defining a data resource structure, the supported data types include:
   ```bash
