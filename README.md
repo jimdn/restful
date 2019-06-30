@@ -59,7 +59,7 @@ A package based on Golang and MongoDB for quickly building HTTP Restful services
 - Support custom database name and collection name, with URL params:
   - db: database name, default is rest_{Biz}
   - col: collection name, default is cn
-  e.g.: /{Biz}?db=dbName&col=colName
+  <br/>e.g.: /{Biz}?db=dbName&col=colName
 
 ## How to use
 see [example](example)
