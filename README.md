@@ -62,4 +62,4 @@ A package based on Golang and MongoDB for quickly building HTTP Restful services
   e.g.: /{Biz}?db=dbName&col=colName
 
 ## How to use
-see example
+see [example](example)
