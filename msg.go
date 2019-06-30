@@ -11,7 +11,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-
 type Rsp struct {
 	Code int         `json:"code"`
 	Msg  string      `json:"msg"`
@@ -19,8 +18,8 @@ type Rsp struct {
 }
 
 type RspGetPageData struct {
-	Total  int64         `json:"total"`
-	Hits   []interface{} `json:"hits"`
+	Total int64         `json:"total"`
+	Hits  []interface{} `json:"hits"`
 }
 
 type Handler func(vars map[string]string, query url.Values, body []byte) *Rsp

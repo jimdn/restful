@@ -6,15 +6,14 @@ import (
 	"github.com/gorilla/mux"
 )
 
-
 type GlobalConfig struct {
-	Mux              *mux.Router   // gorilla/mux
-	MgoSess          *mgo.Session  // mongodb session
-	EsEnable         bool          // enable es for search
-	EsUrl            string        // es url, default: http://127.0.0.1:9200
-	EsIndex          string        // es index, default: restful
-	EsAnalyzer       string        // default: ik_max_word
-	EsSearchAnalyzer string        // default: ik_max_word
+	Mux              *mux.Router  // gorilla/mux
+	MgoSess          *mgo.Session // mongodb session
+	EsEnable         bool         // enable es for search
+	EsUrl            string       // es url, default: http://127.0.0.1:9200
+	EsIndex          string       // es index, default: restful
+	EsAnalyzer       string       // default: ik_max_word
+	EsSearchAnalyzer string       // default: ik_max_word
 }
 
 var gCfg GlobalConfig

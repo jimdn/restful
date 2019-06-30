@@ -4,7 +4,6 @@ import (
 	"strconv"
 )
 
-
 func GenSeq(n int64) string {
 	if n == 0 {
 		n += 1

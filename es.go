@@ -11,7 +11,6 @@ import (
 	"time"
 )
 
-
 var gEsUrl = "http://127.0.0.1:9200"
 var gEsIndex = "restful"
 var gEsIndexAnalyzer = "ik_max_word"
@@ -66,7 +65,7 @@ func EsEnsureIndex(indexCfg string) error {
 		return fmt.Errorf("ensure es index get err: %v", err)
 	}
 	if statusCode == http.StatusNotFound {
-		statusCode, indexPutRspData, err := HttpDo(url, "", "PUT", map[string]string{"Content-Type":"application/json; charset=utf-8"}, []byte(indexCfg))
+		statusCode, indexPutRspData, err := HttpDo(url, "", "PUT", map[string]string{"Content-Type": "application/json; charset=utf-8"}, []byte(indexCfg))
 		if err != nil {
 			return fmt.Errorf("ensure es index http err: %v", err)
 		}
@@ -88,8 +87,8 @@ type SearchResponse struct {
 		Hits  []struct {
 			Id     string `json:"_id"`
 			Source struct {
-				Biz      string  `json:"biz"`
-				Content  string  `json:"content"`
+				Biz     string `json:"biz"`
+				Content string `json:"content"`
 			} `json:"_source"`
 		} `json:"hits"`
 	} `json:"hits"`
@@ -102,7 +101,7 @@ func EsUpsert(biz, id, content string) error {
 	}
 	reqData, _ := json.Marshal(req)
 	url := fmt.Sprintf("%s/%s/_doc/%s", gEsUrl, gEsIndex, biz+"_"+id)
-	statusCode, rspData, err := HttpDo(url, "", "PUT", map[string]string{"Content-Type":"application/json; charset=utf-8"}, reqData)
+	statusCode, rspData, err := HttpDo(url, "", "PUT", map[string]string{"Content-Type": "application/json; charset=utf-8"}, reqData)
 	if err != nil {
 		return err
 	}
@@ -142,7 +141,7 @@ func EsSearch(biz, search string, size, offset int) ([]string, error) {
 				"must": map[string]interface{}{
 					"match": map[string]interface{}{
 						"content": map[string]interface{}{
-							"query": search,
+							"query":    search,
 							"operator": "and",
 						},
 					},
@@ -155,7 +154,7 @@ func EsSearch(biz, search string, size, offset int) ([]string, error) {
 
 	reqData, _ := json.Marshal(req)
 	url := fmt.Sprintf("%s/%s/_search", gEsUrl, gEsIndex)
-	statusCode, rspData, err := HttpDo(url, "", "GET", map[string]string{"Content-Type":"application/json; charset=utf-8"}, reqData)
+	statusCode, rspData, err := HttpDo(url, "", "GET", map[string]string{"Content-Type": "application/json; charset=utf-8"}, reqData)
 	if err != nil {
 		return nil, err
 	}
@@ -178,15 +177,16 @@ func EsSearch(biz, search string, size, offset int) ([]string, error) {
 
 var gNetClient = &http.Client{
 	Transport: &http.Transport{
-		MaxIdleConns:          2000,               // MaxIdleConns 表示空闲KeepAlive长连接数量，为0表示不限制
-		MaxIdleConnsPerHost:   100,                // MaxIdleConnsPerHost 表示单Host空闲KeepAlive数量，系统默认为2
-		ResponseHeaderTimeout: 3 * time.Second,    // 等待后端响应头部的超时时间
-		IdleConnTimeout:       90 * time.Second,   // 长连接空闲超时回收时间
-		TLSHandshakeTimeout:   10 * time.Second,   // TLS握手超时时间
+		MaxIdleConns:          2000,
+		MaxIdleConnsPerHost:   100,
+		ResponseHeaderTimeout: 3 * time.Second,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 	},
-	Timeout : 4 * time.Second,                     // 整个请求超时时间
+	Timeout: 4 * time.Second,
 }
+
 func HttpDo(url, host, method string, header map[string]string, body []byte) (int, []byte, error) {
 	var err error
 	var req *http.Request

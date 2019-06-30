@@ -14,7 +14,6 @@ import (
 	"github.com/globalsign/mgo/bson"
 )
 
-
 type Processor struct {
 	// Business name, usually using plural noun, the uses are as follows:
 	//   1. default db name: rest_{Biz}
@@ -45,12 +44,12 @@ type Processor struct {
 	FieldSet *FieldSet
 
 	// CURD handler
-	PostHandler Handler
-	PutHandler Handler
-	PatchHandler Handler
-	GetHandler Handler
+	PostHandler    Handler
+	PutHandler     Handler
+	PatchHandler   Handler
+	GetHandler     Handler
 	GetPageHandler Handler
-	DeleteHandler Handler
+	DeleteHandler  Handler
 
 	// Do something after data write success
 	//   1. update search data to es
@@ -60,10 +59,9 @@ type Processor struct {
 	// e.g.: /path?db=dbName&col=colName
 	// default db name: rest_{Biz}
 	// default col name: cn
-	GetDbName func(query url.Values) string
+	GetDbName  func(query url.Values) string
 	GetColName func(query url.Values) string
 }
-
 
 func (p *Processor) Init() error {
 	p.FieldSet = BuildFieldSet(reflect.TypeOf(p.DataStruct))
@@ -113,14 +111,13 @@ func (p *Processor) Init() error {
 func (p *Processor) Load() {
 	path := p.URLPath
 	pathWithId := p.URLPath + "/{id}"
-	Register("POST",   path,       p.PostHandler)
-	Register("PUT",    pathWithId, p.PutHandler)
-	Register("PATCH",  pathWithId, p.PatchHandler)
-	Register("GET",    pathWithId, p.GetHandler)
-	Register("GET",    path,       p.GetPageHandler)
+	Register("POST", path, p.PostHandler)
+	Register("PUT", pathWithId, p.PutHandler)
+	Register("PATCH", pathWithId, p.PatchHandler)
+	Register("GET", pathWithId, p.GetHandler)
+	Register("GET", path, p.GetPageHandler)
 	Register("DELETE", pathWithId, p.DeleteHandler)
 }
-
 
 func (p *Processor) DefaultGetDbName() func(query url.Values) string {
 	return func(query url.Values) string {
@@ -530,7 +527,7 @@ func (p *Processor) DefaultGetPage() Handler {
 		case size == -1:
 			err = dbc.Find(condition).Sort(orderFields...).Select(selector).All(&infos)
 		case size > 0:
-			err = dbc.Find(condition).Skip(size * (page-1)).Limit(size).Sort(orderFields...).Select(selector).All(&infos)
+			err = dbc.Find(condition).Skip(size * (page - 1)).Limit(size).Sort(orderFields...).Select(selector).All(&infos)
 		default:
 			err = fmt.Errorf("unknown")
 		}

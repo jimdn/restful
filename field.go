@@ -8,47 +8,46 @@ import (
 	"github.com/globalsign/mgo/bson"
 )
 
-
 const (
-	KindInvalid         = uint(reflect.Invalid)
-	KindBool            = uint(reflect.Bool)
-	KindInt             = uint(reflect.Int64)
-	KindUint            = uint(reflect.Uint64)
-	KindFloat           = uint(reflect.Float64)
-	KindString          = uint(reflect.String)
-	KindObject          = uint(reflect.Struct)
-	KindSimpleEnd       = uint(999)
-	KindArrayBase       = uint(1000)
-	KindArrayBool       = KindArrayBase + KindBool
-	KindArrayInt        = KindArrayBase + KindInt
-	KindArrayUint       = KindArrayBase + KindUint
-	KindArrayFloat      = KindArrayBase + KindFloat
-	KindArrayString     = KindArrayBase + KindString
-	KindArrayObject     = KindArrayBase + KindObject
-	KindArrayEnd        = uint(1999)
-	KindMapBase         = uint(2000)
-	KindMapBool         = KindMapBase + KindBool
-	KindMapInt          = KindMapBase + KindInt
-	KindMapUint         = KindMapBase + KindUint
-	KindMapFloat        = KindMapBase + KindFloat
-	KindMapString       = KindMapBase + KindString
-	KindMapObject       = KindMapBase + KindObject
-	KindMapEnd          = uint(2999)
+	KindInvalid     = uint(reflect.Invalid)
+	KindBool        = uint(reflect.Bool)
+	KindInt         = uint(reflect.Int64)
+	KindUint        = uint(reflect.Uint64)
+	KindFloat       = uint(reflect.Float64)
+	KindString      = uint(reflect.String)
+	KindObject      = uint(reflect.Struct)
+	KindSimpleEnd   = uint(999)
+	KindArrayBase   = uint(1000)
+	KindArrayBool   = KindArrayBase + KindBool
+	KindArrayInt    = KindArrayBase + KindInt
+	KindArrayUint   = KindArrayBase + KindUint
+	KindArrayFloat  = KindArrayBase + KindFloat
+	KindArrayString = KindArrayBase + KindString
+	KindArrayObject = KindArrayBase + KindObject
+	KindArrayEnd    = uint(1999)
+	KindMapBase     = uint(2000)
+	KindMapBool     = KindMapBase + KindBool
+	KindMapInt      = KindMapBase + KindInt
+	KindMapUint     = KindMapBase + KindUint
+	KindMapFloat    = KindMapBase + KindFloat
+	KindMapString   = KindMapBase + KindString
+	KindMapObject   = KindMapBase + KindObject
+	KindMapEnd      = uint(2999)
 )
 
 type Field struct {
-	Kind       uint  // field's kind
-	CreateOnly bool  // field can only be written when creating by POST or PUT
-	ReadOnly   bool  // field can not be written or update, data should be loaded into DB by other ways
+	Kind       uint // field's kind
+	CreateOnly bool // field can only be written when creating by POST or PUT
+	ReadOnly   bool // field can not be written or update, data should be loaded into DB by other ways
 }
 
 type FieldSet struct {
-	FMap map[string]Field  // fields map
-	FSli []string          // fields ordered
+	FMap map[string]Field // fields map
+	FSli []string         // fields ordered
 }
 
 func BuildFieldSet(typ reflect.Type) *FieldSet {
-	p := &FieldSet {
+	p := &FieldSet{
 		FMap: make(map[string]Field),
 		FSli: make([]string, 0),
 	}
@@ -320,7 +319,7 @@ func (fs *FieldSet) InSort(data *map[string]interface{}) bson.D {
 			continue
 		}
 		if _, ok := (*data)[value]; ok {
-			d = append(d, bson.DocElem{Name:value, Value:(*data)[value]})
+			d = append(d, bson.DocElem{Name: value, Value: (*data)[value]})
 		}
 	}
 	return d
@@ -378,7 +377,6 @@ func (fs *FieldSet) BuildFilterObj(filter map[string]interface{}, cond map[strin
 	}
 	return nil
 }
-
 
 func (fs *FieldSet) BuildRangeObj(rang map[string]interface{}, cond map[string]interface{}) error {
 	for k, value := range rang {
@@ -622,14 +620,14 @@ func (fs *FieldSet) BuildSearchContent(obj map[string]interface{}, fields []stri
 		depth := len(path)
 		o := obj
 		i := 0
-		for i = 0; i < (depth-1); i++ {
+		for i = 0; i < (depth - 1); i++ {
 			t := o[path[i]]
 			if t == nil {
 				break
 			}
 			o = t.(map[string]interface{})
 		}
-		if i == (depth-1) {
+		if i == (depth - 1) {
 			switch v := o[path[depth-1]].(type) {
 			case string:
 				array = append(array, v)
@@ -754,7 +752,7 @@ func ParseKindArray(value []interface{}, kind uint) interface{} {
 		fallthrough
 	case KindArrayObject:
 		for _, elem := range value {
-			v := ParseKindValue(elem, kind - KindArrayBase)
+			v := ParseKindValue(elem, kind-KindArrayBase)
 			if v == nil {
 				return nil
 			}
@@ -766,7 +764,7 @@ func ParseKindArray(value []interface{}, kind uint) interface{} {
 
 func ParseKindMap(value map[string]interface{}, kind uint) interface{} {
 	for _, v := range value {
-		if ParseKindValue(v, kind - KindMapBase) == nil {
+		if ParseKindValue(v, kind-KindMapBase) == nil {
 			return nil
 		}
 	}
@@ -811,4 +809,3 @@ func EmptyValue(kind uint) interface{} {
 	}
 	return nil
 }
-

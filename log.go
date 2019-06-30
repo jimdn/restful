@@ -13,6 +13,7 @@ type Logger interface {
 	Fatalf(format string, v ...interface{})
 	Fatalln(v ...interface{})
 }
+
 // you can reassign Log to your own Logger which
 // contains the methods above
 var Log Logger
@@ -48,6 +49,6 @@ func (l *ExtLog) Fatalln(v ...interface{}) {
 
 func init() {
 	var el ExtLog
-	el.Logger = log.New(os.Stderr, "" , log.LstdFlags)
+	el.Logger = log.New(os.Stderr, "", log.LstdFlags)
 	Log = &el
 }
