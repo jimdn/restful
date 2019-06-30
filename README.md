@@ -1,5 +1,5 @@
 # jimdn/restful
-A package based on Golang and MongoDB for quickly building HTTP Restful services with JSON.
+A package based on Golang and MongoDB for quickly building HTTP RESTful services with JSON.
 
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/jimdn/restful?style=flat-square)](https://goreportcard.com/report/github.com/jimdn/restful)
@@ -10,7 +10,7 @@ A package based on Golang and MongoDB for quickly building HTTP Restful services
 - mongodb v3.4.x v3.6.x
 - elasticsearch v6.7 v7.x (if enable searching)
 
-## Dependencies:
+## Dependencies
 
 - github.com/gorilla/mux
 - github.com/globalsign/mgo
