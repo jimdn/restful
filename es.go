@@ -19,17 +19,17 @@ var gEsIndexSearchAnalyzer = "ik_max_word"
 var gEsIndexConfigFmt = `{
     "mappings":{
         "_doc":{
-		    "properties":{
-			    "biz":{
-				    "type": "keyword"
-			    },
-			    "content":{
-				    "type": "text",
-				    "analyzer": "%s",
-				    "search_analyzer": "%s"
-			    }
+            "properties":{
+                "biz":{
+                    "type": "keyword"
+                },
+                "content":{
+                    "type": "text",
+                    "analyzer": "%s",
+                    "search_analyzer": "%s"
+                }
             }
-		}
+        }
     },
     "settings":{
         "index":{
