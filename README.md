@@ -20,14 +20,14 @@ A package based on Golang and MongoDB for quickly building HTTP RESTful services
 
 - Define the structure of the data resource (including json and bson tags), then you can implement the CURD service of HTTP+JSON. The protocol is as follows:
 
-| HTTP Method | Path | URL params | Explain |
-|------|-----|------|-----|
-| POST | /{biz} | - | insert data |
-| PUT | /{biz}/{id} | - | insert or update(overwrite) data by id |
-| PATCH | /{biz}/{id} | seq | update data by id |
-| DELETE | /{biz}/{id} | - | delete data by id |
-| GET | /{biz}/{id} | - | get data by id |
-| GET | /{biz} | page<br/> size<br/>  filter<br/>  range<br/>  in<br/> nin<br/> all<br/> search<br/>  order<br/>select | get list of data:<br/>page=1<br/>size=10<br/>filter={"star":5, "city":"shenzhen"}<br/>range={"age":{"gt":20, "lt":40}}<br/>in={"color":["blue", "red"]}<br/>nin={"color":["blue", "red"]}<br/>all={"color":["blue", "red"]}<br/>search=hello<br/>order=["+age", "-time"]<br/>select=["id", "name", "age"]<br/>|
+| HTTP Method | Path | URL params | HTTP Body | Explain |
+|------|-----|------|-----|-----|
+| POST | /{biz} | - | data to be inserted | insert data |
+| PUT | /{biz}/{id} | - |  data to be upserted | insert or update(overwrite) data by id |
+| PATCH | /{biz}/{id} | seq |  data to be updated | update data by id |
+| DELETE | /{biz}/{id} | - |  - | delete data by id |
+| GET | /{biz}/{id} | - |  - | get data by id |
+| GET | /{biz} | page<br/> size<br/>  filter<br/>  range<br/>  in<br/> nin<br/> all<br/> search<br/>  order<br/>select |  - | get list of data:<br/>page=1<br/>size=10<br/>filter={"star":5, "city":"shenzhen"}<br/>range={"age":{"gt":20, "lt":40}}<br/>in={"color":["blue", "red"]}<br/>nin={"color":["blue", "red"]}<br/>all={"color":["blue", "red"]}<br/>search=hello<br/>order=["+age", "-time"]<br/>select=["id", "name", "age"]<br/>|
 
 - When defining a data resource structure, the supported data types include:
   ```bash
@@ -59,7 +59,183 @@ A package based on Golang and MongoDB for quickly building HTTP RESTful services
 - Support custom database name and collection name, with URL params:
   - db: database name, default is rest_{Biz}
   - col: collection name, default is cn
-  <br/>e.g.: /{Biz}?db=dbName&col=colName
+  
+  e.g.: /{Biz}?db=dbName&col=colName
+
 
 ## How to use
-see [example](example)
+See [examples](examples). We take the `Student` of [simple.go](examples/simple.go) as an example:
+
+### Insert resource (with or without id)
+Request:
+```http
+POST /students HTTP/1.1
+Content-Type: application/json; charset=utf-8
+Content-Length: 226
+
+{
+    "id": "student-id-001",
+    "name": "jimmydeng",
+    ...
+}
+```
+
+Response:
+```http
+HTTP/1.1 200 OK
+Date: Mon, 22 Apr 2019 06:46:23 GMT
+Content-Type: application/json; charset=utf-8
+Content-Length: 91
+
+{
+    "code": 0,
+    "msg": "post ok",
+    "data": {
+        "id": "student-id-001"
+    }
+}
+```
+
+
+### Upsert resource by id
+Request:
+```http
+POST /students/student-id-001 HTTP/1.1
+Content-Type: application/json; charset=utf-8
+Content-Length: 226
+
+{
+    "id": "student-id-001",
+    "name": "jimmydeng",
+    ...
+}
+```
+
+Response:
+```http
+HTTP/1.1 200 OK
+Date: Mon, 22 Apr 2019 06:46:23 GMT
+Content-Type: application/json; charset=utf-8
+Content-Length: 90
+
+{
+    "code": 0,
+    "msg": "put ok",
+    "data": {
+        "id": "student-id-001"
+    }
+}
+```
+
+
+### Update resource by id
+Request:
+```http
+PATCH /students/student-id-001?seq=1 HTTP/1.1
+Content-Type: application/json; charset=utf-8
+Content-Length: 226
+
+{
+    "id": "student-id-001",
+    "name": "jimmydeng02",
+    ...
+}
+```
+
+Response:
+```http
+HTTP/1.1 200 OK
+Date: Mon, 22 Apr 2019 06:46:23 GMT
+Content-Type: application/json; charset=utf-8
+Content-Length: 30
+
+{
+    "code": 0,
+    "msg": "patch ok",
+    "data": {
+        "id": "student-id-001"
+    }
+}
+```
+
+
+### Delete resource by id
+Request:
+```http
+DELETE /students/student-id-001 HTTP/1.1
+```
+
+Response:
+```http
+HTTP/1.1 200 OK
+Date: Mon, 22 Apr 2019 06:46:23 GMT
+Content-Type: application/json; charset=utf-8
+Content-Length: 30
+
+{
+    "code": 0,
+    "msg": "delete ok",
+    "data": {
+        "id": "student-id-001"
+    }
+}
+```
+
+### Get resource by id
+Request:
+```http
+GET /students/student-id-001 HTTP/1.1
+```
+
+Response:
+```http
+HTTP/1.1 200 OK
+Date: Mon, 22 Apr 2019 06:46:23 GMT
+Content-Type: application/json; charset=utf-8
+Content-Length: 537
+
+{
+    "code": 0,
+    "msg": "get ok",
+    "data": {
+        "id": "student-id-001"
+        "name": "jimmydeng",
+        ...
+    }
+}
+```
+
+### Get resources
+Request:
+```http
+GET /students?page=1&size=10 HTTP/1.1
+```
+
+Response:
+```http
+HTTP/1.1 200 OK
+Date: Mon, 22 Apr 2019 06:46:23 GMT
+Content-Type: application/json; charset=utf-8
+Content-Length: 797
+
+{
+    "code": 0,
+    "msg": "get page ok",
+    "data": {
+        "total": 238,
+        "hits": [
+            {
+                "id": "student-id-001",
+                "name": "jimmydeng",
+                ...
+            },
+            {
+                "id": "student-id-002",
+                "name": "tonywho",
+                ...
+            }
+            ...
+        ]
+    }
+}
+```
