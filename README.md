@@ -20,7 +20,7 @@ A package based on Golang and MongoDB for quickly building HTTP RESTful services
 
 - Define the structure of the data resource (including json and bson tags), then you can implement the CURD service of HTTP+JSON. The protocol is as follows:
 
-| HTTP Method | Path | URL params | HTTP Body | Explain |
+| HTTP Method | Path | URL Params | HTTP Body | Explain |
 |------|-----|------|-----|-----|
 | POST | /{biz} | - | data to be inserted | insert data |
 | PUT | /{biz}/{id} | - |  data to be upserted | insert or update(overwrite) data by id |
@@ -100,7 +100,7 @@ Content-Length: 91
 ### Upsert resource by id
 Request:
 ```http
-POST /students/student-id-001 HTTP/1.1
+PUT /students/student-id-001 HTTP/1.1
 Content-Type: application/json; charset=utf-8
 Content-Length: 226
 
