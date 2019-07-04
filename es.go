@@ -119,6 +119,9 @@ func EsUpsert(biz, id, content string) error {
 func EsRemove(biz, id string) error {
 	url := fmt.Sprintf("%s/%s/_doc/%s", gEsUrl, gEsIndex, biz+"_"+id)
 	statusCode, rspData, err := HttpDo(url, "", "DELETE", nil, nil)
+	if err != nil {
+		return err
+	}
 	if statusCode != http.StatusOK && statusCode != http.StatusNotFound {
 		rsp := SearchResponse{}
 		err = json.Unmarshal(rspData, &rsp)
