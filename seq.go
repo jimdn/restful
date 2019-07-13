@@ -17,8 +17,5 @@ func NextSeq(seq string) (string, error) {
 		return "", err
 	}
 	n += 1
-	if n == 0 {
-		n += 1
-	}
 	return GenSeq(n), nil
 }

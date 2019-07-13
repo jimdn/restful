@@ -185,7 +185,7 @@ func (p *Processor) DefaultPost() Handler {
 		if p.OnWriteDone != nil {
 			go p.OnWriteDone("POST", vars, query, info)
 		}
-		return genRsp(http.StatusOK, "post ok", map[string]interface{}{"id": info["_id"]})
+		return genRsp(http.StatusOK, "post ok", map[string]interface{}{"id": info["_id"], "seq": info["seq"]})
 	}
 }
 
@@ -248,7 +248,7 @@ func (p *Processor) DefaultPut() Handler {
 		if p.OnWriteDone != nil {
 			go p.OnWriteDone("PUT", vars, query, info)
 		}
-		return genRsp(http.StatusOK, "put ok", map[string]interface{}{"id": info["_id"]})
+		return genRsp(http.StatusOK, "put ok", map[string]interface{}{"id": info["_id"], "seq": info["seq"]})
 	}
 }
 
@@ -314,7 +314,10 @@ func (p *Processor) DefaultPatch() Handler {
 		if p.OnWriteDone != nil {
 			go p.OnWriteDone("PATCH", vars, query, info)
 		}
-		return genRsp(http.StatusOK, "patch ok", map[string]interface{}{"id": id})
+		if ignoreSeq {
+			return genRsp(http.StatusOK, "patch ok", map[string]interface{}{"id": id})
+		}
+		return genRsp(http.StatusOK, "patch ok", map[string]interface{}{"id": id, "seq": info["seq"]})
 	}
 }
 
