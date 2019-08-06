@@ -124,6 +124,9 @@ func (p *Processor) DefaultGetDbName() func(query url.Values) string {
 		if db := query.Get("db"); db != "" {
 			return db
 		}
+		if gCfg.MgoDefaultDbPrefix != "" {
+			return gCfg.MgoDefaultDbPrefix + p.Biz
+		}
 		return "rest_" + p.Biz
 	}
 }
@@ -132,6 +135,9 @@ func (p *Processor) DefaultGetColName() func(query url.Values) string {
 	return func(query url.Values) string {
 		if col := query.Get("col"); col != "" {
 			return col
+		}
+		if gCfg.MgoDefaultCol != "" {
+			return gCfg.MgoDefaultCol
 		}
 		return "cn"
 	}
