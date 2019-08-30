@@ -95,16 +95,33 @@ func (p *Processor) Init() error {
 	Log.Debugf("%v FieldSet %v", p.Biz, p.FieldSet)
 
 	// default value
-	p.GetDbName = p.DefaultGetDbName()
-	p.GetColName = p.DefaultGetColName()
-	p.PostHandler = p.DefaultPost()
-	p.PutHandler = p.DefaultPut()
-	p.PatchHandler = p.DefaultPatch()
-	p.GetHandler = p.DefaultGet()
-	p.GetPageHandler = p.DefaultGetPage()
-	p.DeleteHandler = p.DefaultDelete()
-	p.OnWriteDone = p.DefaultOnWriteDone()
-
+	if p.PostHandler == nil {
+		p.PostHandler = p.DefaultPost()
+	}
+	if p.PutHandler == nil {
+		p.PutHandler = p.DefaultPut()
+	}
+	if p.PatchHandler == nil {
+		p.PatchHandler = p.DefaultPatch()
+	}
+	if p.GetHandler == nil {
+		p.GetHandler = p.DefaultGet()
+	}
+	if p.GetPageHandler == nil {
+		p.GetPageHandler = p.DefaultGetPage()
+	}
+	if p.DeleteHandler == nil {
+		p.DeleteHandler = p.DefaultDelete()
+	}
+	if p.OnWriteDone == nil {
+		p.OnWriteDone = p.DefaultOnWriteDone()
+	}
+	if p.GetDbName == nil {
+		p.GetDbName = p.DefaultGetDbName()
+	}
+	if p.GetColName == nil {
+		p.GetColName = p.DefaultGetColName()
+	}
 	return nil
 }
 

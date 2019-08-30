@@ -42,7 +42,6 @@ func Init(cfg *GlobalConfig, processors *[]Processor) error {
 		if err != nil {
 			return err
 		}
-		// do something else
 		p.Load()
 	}
 	return nil
