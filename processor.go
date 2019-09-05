@@ -469,6 +469,19 @@ func (p *Processor) DefaultGetPage() Handler {
 				return genRsp(http.StatusBadRequest, err.Error(), nil)
 			}
 		}
+		if query.Get("or") != "" {
+			var or []interface{}
+			err := json.Unmarshal([]byte(query.Get("or")), &or)
+			if err != nil {
+				Log.Warnf("unmarshal or error: %v", err)
+				return genRsp(http.StatusBadRequest, "or invalid", nil)
+			}
+			err = p.FieldSet.BuildOrObj(or, condition)
+			if err != nil {
+				Log.Warnf("or param invalid, %v", err)
+				return genRsp(http.StatusBadRequest, err.Error(), nil)
+			}
+		}
 		if query.Get("search") != "" {
 			search := query.Get("search")
 			if search != "" {

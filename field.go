@@ -285,6 +285,23 @@ func (fs *FieldSet) InReplace(value *map[string]interface{}) {
 		(*value)["_id"] = v
 		delete(*value, "id")
 	}
+	if v, ok := (*value)["$or"]; ok {
+		switch sli := v.(type) {
+		case []interface{}:
+			newOr := make([]map[string]interface{}, 0)
+			for _, elem := range sli {
+				switch m := elem.(type) {
+				case map[string]interface{}:
+					if vv, ok := m["id"]; ok {
+						m["_id"] = vv
+						delete(m, "id")
+					}
+					newOr = append(newOr, m)
+				}
+			}
+			(*value)["$or"] = newOr
+		}
+	}
 }
 
 func (fs *FieldSet) OutReplace(value *map[string]interface{}) {
@@ -532,6 +549,83 @@ func (fs *FieldSet) BuildAllObj(all map[string]interface{}, cond map[string]inte
 			continue
 		}
 		return fmt.Errorf("all field %s type not support", k)
+	}
+	return nil
+}
+
+func (fs *FieldSet) BuildOrObj(or []interface{}, cond map[string]interface{}) error {
+	if _, exist := cond["$or"]; exist {
+		return fmt.Errorf("or field condition conflict")
+	}
+	var err error
+	orCond := make([]interface{}, 0)
+	for _, obj := range or {
+		switch m := obj.(type) {
+		case map[string]interface{}:
+			condition := make(map[string]interface{})
+			for k, value := range m {
+				switch k {
+				case "filter":
+					switch filter := value.(type) {
+					case map[string]interface{}:
+						err = fs.BuildFilterObj(filter, condition)
+						if err != nil {
+							return err
+						}
+					default:
+						return fmt.Errorf("or field %v filter type not map", obj)
+					}
+				case "range":
+					switch rang := value.(type) {
+					case map[string]interface{}:
+						err = fs.BuildRangeObj(rang, condition)
+						if err != nil {
+							return err
+						}
+					default:
+						return fmt.Errorf("or field %v range type not map", obj)
+					}
+				case "in":
+					switch in := value.(type) {
+					case map[string]interface{}:
+						err = fs.BuildInObj(in, condition)
+						if err != nil {
+							return err
+						}
+					default:
+						return fmt.Errorf("or field %v in type not map", obj)
+					}
+				case "nin":
+					switch nin := value.(type) {
+					case map[string]interface{}:
+						err = fs.BuildNinObj(nin, condition)
+						if err != nil {
+							return err
+						}
+					default:
+						return fmt.Errorf("or field %v nin type not map", obj)
+					}
+				case "all":
+					switch all := value.(type) {
+					case map[string]interface{}:
+						err = fs.BuildAllObj(all, condition)
+						if err != nil {
+							return err
+						}
+					default:
+						return fmt.Errorf("or field %v all type not map", obj)
+					}
+				default:
+					return fmt.Errorf("or field %v condition %v unknown", obj, k)
+				}
+			}
+			orCond = append(orCond, condition)
+		default:
+			return fmt.Errorf("or field %v not map", obj)
+		}
+	}
+	if len(orCond) > 0 {
+		cond["$or"] = orCond
 	}
 	return nil
 }
