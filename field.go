@@ -158,18 +158,14 @@ func (fs *FieldSet) check(obj map[string]interface{}, prefix []string, dotOk boo
 
 			// check map
 			kind, ok := fs.IsMapMember(k)
-			if !ok {
-				invalidFields[k] = "unknown"
-				delete(obj, k)
-				continue
+			if ok {
+				v := ParseKindValue(value, kind-KindMapBase)
+				if v == nil {
+					invalidFields[k] = "type mismatch"
+					delete(obj, k)
+					continue
+				}
 			}
-			v := ParseKindValue(value, kind-KindMapBase)
-			if v == nil {
-				invalidFields[k] = "type mismatch"
-				delete(obj, k)
-				continue
-			}
-			continue
 		}
 
 		path := append(prefix, k)
