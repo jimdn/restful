@@ -13,6 +13,8 @@ type GlobalConfig struct {
 	MgoDefaultCol      string       // mongodb default collection name, using "cn" if not setting
 	EsEnable           bool         // enable es for search
 	EsUrl              string       // es url, default: http://127.0.0.1:9200
+	EsUser             string       // es username
+	EsPwd              string       // es password
 	EsIndex            string       // es index, default: restful
 	EsAnalyzer         string       // default: ik_max_word
 	EsSearchAnalyzer   string       // default: ik_max_word
@@ -30,7 +32,7 @@ func Init(cfg *GlobalConfig, processors *[]Processor) error {
 
 	gCfg = *cfg
 	if gCfg.EsEnable {
-		err := InitEsParam(gCfg.EsUrl, gCfg.EsIndex, gCfg.EsAnalyzer, gCfg.EsSearchAnalyzer)
+		err := InitEsParam(gCfg.EsUrl, gCfg.EsUser, gCfg.EsPwd, gCfg.EsIndex, gCfg.EsAnalyzer, gCfg.EsSearchAnalyzer)
 		if err != nil {
 			return err
 		}

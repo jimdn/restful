@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/globalsign/mgo"
 	"github.com/gorilla/mux"
 	"github.com/jimdn/restful"
-	"net/http"
-	"time"
 )
 
 // step 1: init data structure

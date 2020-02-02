@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/globalsign/mgo"
 	"github.com/gorilla/mux"
 	"github.com/jimdn/restful"
-	"net/http"
-	"time"
 )
 
 // step 1: init data structure
@@ -60,6 +61,8 @@ func main() {
 		MgoSess:          mgoSess,
 		EsEnable:         true,
 		EsUrl:            "http://127.0.0.1:9200",
+		EsUser:           "",
+		EsPwd:            "",
 		EsIndex:          "restful",
 		EsAnalyzer:       "ik_max_word", // analyzer plugins
 		EsSearchAnalyzer: "ik_max_word", // search analyzer plugins
