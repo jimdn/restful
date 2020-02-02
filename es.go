@@ -2,6 +2,7 @@ package restful
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +13,8 @@ import (
 )
 
 var gEsUrl = "http://127.0.0.1:9200"
+var gEsUser = ""
+var gEsPwd = ""
 var gEsIndex = "restful"
 var gEsIndexAnalyzer = "ik_max_word"
 var gEsIndexSearchAnalyzer = "ik_max_word"
@@ -40,10 +43,16 @@ var gEsIndexConfigFmt = `{
     }
 }`
 
-func InitEsParam(url, index, analyzer, searchAnalyzer string) error {
+func InitEsParam(url, user, pwd, index, analyzer, searchAnalyzer string) error {
 	if url != "" {
 		gEsUrl = url
 		gEsUrl = strings.TrimSuffix(gEsUrl, "/")
+	}
+	if user != "" {
+		gEsUser = user
+	}
+	if pwd != "" {
+		gEsPwd = pwd
 	}
 	if index != "" {
 		gEsIndex = index
@@ -60,12 +69,17 @@ func InitEsParam(url, index, analyzer, searchAnalyzer string) error {
 
 func EsEnsureIndex(indexCfg string) error {
 	url := fmt.Sprintf("%s/%s?include_type_name=true", gEsUrl, gEsIndex)
-	statusCode, _, err := HttpDo(url, "", "GET", nil, nil)
+	header := make(map[string]string)
+	header["Content-Type"] = "application/json; charset=utf-8"
+	if gEsUser != "" || gEsPwd != "" {
+		header["Authorization"] = "Basic " + base64.StdEncoding.EncodeToString([]byte(gEsUser + ":" + gEsPwd))
+	}
+	statusCode, _, err := HttpDo(url, "", "GET", header, nil)
 	if err != nil {
 		return fmt.Errorf("ensure es index get err: %v", err)
 	}
 	if statusCode == http.StatusNotFound {
-		statusCode, indexPutRspData, err := HttpDo(url, "", "PUT", map[string]string{"Content-Type": "application/json; charset=utf-8"}, []byte(indexCfg))
+		statusCode, indexPutRspData, err := HttpDo(url, "", "PUT", header, []byte(indexCfg))
 		if err != nil {
 			return fmt.Errorf("ensure es index http err: %v", err)
 		}
@@ -83,7 +97,7 @@ type SearchResponse struct {
 		Reason string `json:"reason"`
 	} `json:"error"`
 	Hits struct {
-		Total interface{} `json:"total"`
+		Total int64 `json:"total"`
 		Hits  []struct {
 			Id     string `json:"_id"`
 			Source struct {
@@ -101,7 +115,12 @@ func EsUpsert(biz, id, content string) error {
 	}
 	reqData, _ := json.Marshal(req)
 	url := fmt.Sprintf("%s/%s/_doc/%s", gEsUrl, gEsIndex, biz+"_"+id)
-	statusCode, rspData, err := HttpDo(url, "", "PUT", map[string]string{"Content-Type": "application/json; charset=utf-8"}, reqData)
+	header := make(map[string]string)
+	header["Content-Type"] = "application/json; charset=utf-8"
+	if gEsUser != "" || gEsPwd != "" {
+		header["Authorization"] = "Basic " + base64.StdEncoding.EncodeToString([]byte(gEsUser + ":" + gEsPwd))
+	}
+	statusCode, rspData, err := HttpDo(url, "", "PUT", header, reqData)
 	if err != nil {
 		return err
 	}
@@ -118,7 +137,12 @@ func EsUpsert(biz, id, content string) error {
 
 func EsRemove(biz, id string) error {
 	url := fmt.Sprintf("%s/%s/_doc/%s", gEsUrl, gEsIndex, biz+"_"+id)
-	statusCode, rspData, err := HttpDo(url, "", "DELETE", nil, nil)
+	header := make(map[string]string)
+	header["Content-Type"] = "application/json; charset=utf-8"
+	if gEsUser != "" || gEsPwd != "" {
+		header["Authorization"] = "Basic " + base64.StdEncoding.EncodeToString([]byte(gEsUser + ":" + gEsPwd))
+	}
+	statusCode, rspData, err := HttpDo(url, "", "DELETE", header, nil)
 	if err != nil {
 		return err
 	}
@@ -156,8 +180,13 @@ func EsSearch(biz, search string, size, offset int) ([]string, error) {
 	}
 
 	reqData, _ := json.Marshal(req)
-	url := fmt.Sprintf("%s/%s/_search", gEsUrl, gEsIndex)
-	statusCode, rspData, err := HttpDo(url, "", "GET", map[string]string{"Content-Type": "application/json; charset=utf-8"}, reqData)
+	url := fmt.Sprintf("%s/%s/_search?rest_total_hits_as_int=true", gEsUrl, gEsIndex)
+	header := make(map[string]string)
+	header["Content-Type"] = "application/json; charset=utf-8"
+	if gEsUser != "" || gEsPwd != "" {
+		header["Authorization"] = "Basic " + base64.StdEncoding.EncodeToString([]byte(gEsUser + ":" + gEsPwd))
+	}
+	statusCode, rspData, err := HttpDo(url, "", "GET", header, reqData)
 	if err != nil {
 		return nil, err
 	}
