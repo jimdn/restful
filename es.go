@@ -23,7 +23,10 @@ var gEsIndexConfigFmt = `{
     "mappings":{
         "_doc":{
             "properties":{
-                "biz":{
+                "db":{
+                    "type": "keyword"
+                },
+                "table":{
                     "type": "keyword"
                 },
                 "content":{
@@ -101,26 +104,29 @@ type SearchResponse struct {
 		Hits  []struct {
 			Id     string `json:"_id"`
 			Source struct {
-				Biz     string `json:"biz"`
+				Db      string `json:"db"`
+				Table   string `json:"table"`
 				Content string `json:"content"`
 			} `json:"_source"`
 		} `json:"hits"`
 	} `json:"hits"`
 }
 
-func EsUpsert(biz, id, content string) error {
+func EsUpsert(db, table, id, content string) error {
 	req := map[string]interface{}{
+		"db":      db,
+		"table":   table,
 		"content": content,
-		"biz":     biz,
 	}
 	reqData, _ := json.Marshal(req)
-	url := fmt.Sprintf("%s/%s/_doc/%s", gEsUrl, gEsIndex, biz+"_"+id)
+	docId := fmt.Sprintf("%s_%s_%s", db, table, id)
+	destURL := fmt.Sprintf("%s/%s/_doc/%s", gEsUrl, gEsIndex, docId)
 	header := make(map[string]string)
 	header["Content-Type"] = "application/json; charset=utf-8"
 	if gEsUser != "" || gEsPwd != "" {
 		header["Authorization"] = "Basic " + base64.StdEncoding.EncodeToString([]byte(gEsUser + ":" + gEsPwd))
 	}
-	statusCode, rspData, err := HttpDo(url, "", "PUT", header, reqData)
+	statusCode, rspData, err := HttpDo(destURL, "", "PUT", header, reqData)
 	if err != nil {
 		return err
 	}
@@ -135,14 +141,15 @@ func EsUpsert(biz, id, content string) error {
 	return nil
 }
 
-func EsRemove(biz, id string) error {
-	url := fmt.Sprintf("%s/%s/_doc/%s", gEsUrl, gEsIndex, biz+"_"+id)
+func EsRemove(db, table, id string) error {
+	docId := fmt.Sprintf("%s_%s_%s", db, table, id)
+	destURL := fmt.Sprintf("%s/%s/_doc/%s", gEsUrl, gEsIndex, docId)
 	header := make(map[string]string)
 	header["Content-Type"] = "application/json; charset=utf-8"
 	if gEsUser != "" || gEsPwd != "" {
 		header["Authorization"] = "Basic " + base64.StdEncoding.EncodeToString([]byte(gEsUser + ":" + gEsPwd))
 	}
-	statusCode, rspData, err := HttpDo(url, "", "DELETE", header, nil)
+	statusCode, rspData, err := HttpDo(destURL, "", "DELETE", header, nil)
 	if err != nil {
 		return err
 	}
@@ -157,13 +164,14 @@ func EsRemove(biz, id string) error {
 	return nil
 }
 
-func EsSearch(biz, search string, size, offset int) ([]string, error) {
+func EsSearch(db, table, search string, size, offset int) ([]string, error) {
 	req := map[string]interface{}{
 		"track_scores": true,
 		"query": map[string]interface{}{
 			"bool": map[string]interface{}{
-				"filter": map[string]interface{}{
-					"term": map[string]interface{}{"biz": biz},
+				"filter": []map[string]interface{} {
+					{"term": map[string]interface{}{"db": db}},
+					{"term": map[string]interface{}{"table": table}},
 				},
 				"must": map[string]interface{}{
 					"match": map[string]interface{}{
@@ -200,11 +208,12 @@ func EsSearch(biz, search string, size, offset int) ([]string, error) {
 		return nil, errors.New(fmt.Sprintf("EsSearch error %v", rsp.Error.Reason))
 	}
 
-	r := make([]string, 0, len(rsp.Hits.Hits))
+	docIds := make([]string, 0, len(rsp.Hits.Hits))
 	for i := range rsp.Hits.Hits {
-		r = append(r, strings.TrimPrefix(rsp.Hits.Hits[i].Id, rsp.Hits.Hits[i].Source.Biz+"_"))
+		idPrefix := fmt.Sprintf("%s_%s_", db, table)
+		docIds = append(docIds, strings.TrimPrefix(rsp.Hits.Hits[i].Id, idPrefix))
 	}
-	return r, nil
+	return docIds, nil
 }
 
 var gNetClient = &http.Client{

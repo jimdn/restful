@@ -8,7 +8,7 @@ A package based on Golang and MongoDB for quickly building HTTP RESTful services
 
 - go 1.10+
 - mongodb v3.4.x v3.6.x
-- elasticsearch v6.7 v7.x (if enable searching)
+- elasticsearch v6.8.x v7.x.x (if enable searching)
 
 ## Dependencies
 
@@ -41,7 +41,7 @@ A package based on Golang and MongoDB for quickly building HTTP RESTful services
 
 - With the field check function, the incoming data field type is wrong or does not exist, it will return a failure and prompt specific error information.
 
-- Support custom data ID or automatically create ID (UUIDv4), BTW, pay attention to the writing of tags:
+- Support custom data ID or automatically create ID (UUIDv4), pay attention to the writing of tags:
   ```go
     type Foo struct {
         Id  *string  `json:"id,omitempty" bson:"_id,omitempty"`
@@ -56,11 +56,11 @@ A package based on Golang and MongoDB for quickly building HTTP RESTful services
 - Support anti-concurrent writing, the `seq` field required:
   - seq: will be updated each time the data is modified, the update (PATCH) request needs to bring the data original seq to prevent concurrent writing from causing data confusion.
 
-- Support custom database name and collection name, with URL params:
-  - db: database name, default is rest_{Biz}
-  - col: collection name, default is cn
+- Support custom database name and table name, with URL params:
+  - db: database name, default is restful
+  - table: table name, default is {Biz}
   
-  e.g.: /{Biz}?db=dbName&col=colName
+  e.g.: /{Biz}?db=dbName&table=tableName
 
 
 ## How to use
@@ -69,7 +69,7 @@ See [examples](examples). We take the `Student` of [simple.go](examples/simple.g
 ### Insert resource (with or without id)
 Request:
 ```http
-POST /students HTTP/1.1
+POST /student HTTP/1.1
 Content-Type: application/json; charset=utf-8
 Content-Length: 226
 
@@ -100,7 +100,7 @@ Content-Length: 91
 ### Upsert resource by id
 Request:
 ```http
-PUT /students/student-id-001 HTTP/1.1
+PUT /student/student-id-001 HTTP/1.1
 Content-Type: application/json; charset=utf-8
 Content-Length: 226
 
@@ -131,7 +131,7 @@ Content-Length: 90
 ### Update resource by id
 Request:
 ```http
-PATCH /students/student-id-001?seq=1 HTTP/1.1
+PATCH /student/student-id-001?seq=1 HTTP/1.1
 Content-Type: application/json; charset=utf-8
 Content-Length: 226
 
@@ -162,7 +162,7 @@ Content-Length: 30
 ### Delete resource by id
 Request:
 ```http
-DELETE /students/student-id-001 HTTP/1.1
+DELETE /student/student-id-001 HTTP/1.1
 ```
 
 Response:
@@ -184,7 +184,7 @@ Content-Length: 30
 ### Get resource by id
 Request:
 ```http
-GET /students/student-id-001 HTTP/1.1
+GET /student/student-id-001 HTTP/1.1
 ```
 
 Response:
@@ -208,7 +208,7 @@ Content-Length: 537
 ### Get resources
 Request:
 ```http
-GET /students?page=1&size=10 HTTP/1.1
+GET /student?page=1&size=10 HTTP/1.1
 ```
 
 Response:

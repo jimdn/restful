@@ -43,8 +43,8 @@ func main() {
 	// step 3: init restful
 	processors := []restful.Processor{
 		{
-			Biz:              "movies",
-			URLPath:          "/movies",
+			Biz:              "movie",
+			URLPath:          "/movie",
 			DataStruct:       new(Movie),
 			SearchFields:     []string{"id", "name", "director", "actors"}, // fields for searching
 			CreateOnlyFields: []string{"director", "actors"},               // fields cannot be modified after created

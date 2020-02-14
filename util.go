@@ -29,7 +29,7 @@ func GetString(s interface{}) string {
 
 func CheckBool(value interface{}) interface{} {
 	if v, ok := value.(bool); ok {
-		return bool(v)
+		return v
 	}
 	return nil
 }
@@ -45,7 +45,7 @@ func CheckInt(value interface{}) interface{} {
 	case int32:
 		return int64(v)
 	case int64:
-		return int64(v)
+		return v
 	case uint:
 		return int64(v)
 	case uint8:
@@ -86,7 +86,7 @@ func CheckUint(value interface{}) interface{} {
 	case uint32:
 		return uint64(v)
 	case uint64:
-		return uint64(v)
+		return v
 	case float32:
 		return uint64(v)
 	case float64:
@@ -120,7 +120,7 @@ func CheckFloat(value interface{}) interface{} {
 	case float32:
 		return float64(v)
 	case float64:
-		return float64(v)
+		return v
 	}
 	return nil
 }

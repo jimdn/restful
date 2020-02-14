@@ -9,8 +9,7 @@ import (
 type GlobalConfig struct {
 	Mux                *mux.Router  // gorilla/mux
 	MgoSess            *mgo.Session // mongodb session
-	MgoDefaultDbPrefix string       // mongodb default db prefix, using "rest_" if not setting
-	MgoDefaultCol      string       // mongodb default collection name, using "cn" if not setting
+	MgoDefaultDbName   string       // mongodb default db name, using "restful" if not setting
 	EsEnable           bool         // enable es for search
 	EsUrl              string       // es url, default: http://127.0.0.1:9200
 	EsUser             string       // es username

@@ -44,14 +44,14 @@ func main() {
 	// step 3: init restful
 	processors := []restful.Processor{
 		{
-			Biz:          "teachers",
-			URLPath:      "/teachers",
+			Biz:          "teacher",
+			URLPath:      "/teacher",
 			DataStruct:   new(Teacher),
 			SearchFields: []string{"id", "name"}, // fields for searching
 		},
 		{
-			Biz:          "students",
-			URLPath:      "/students",
+			Biz:          "student",
+			URLPath:      "/student",
 			DataStruct:   new(Student),
 			SearchFields: []string{"id", "name"}, // fields for searching
 		},

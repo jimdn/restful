@@ -15,9 +15,10 @@ import (
 )
 
 type Processor struct {
-	// Business name, usually using plural noun, the uses are as follows:
-	//   1. default db name: rest_{Biz}
-	//   2. value of elasticsearch biz field
+	// Business name, functions:
+	//   1. default value of table name: ${Biz}
+	//   2. default value of URLPath
+	//   3. default value of elasticsearch doc field "table"
 	//   3. logs
 	Biz string
 
@@ -55,22 +56,27 @@ type Processor struct {
 	//   1. update search data to es
 	OnWriteDone func(method string, vars map[string]string, query url.Values, data map[string]interface{})
 
-	// specify db and collection name from URL Query
-	// e.g.: /path?db=dbName&col=colName
-	// default db name: rest_{Biz}
-	// default col name: cn
+	// specify db and table name from URL Query
+	// e.g.: /path?db=dbName&table=tableName
+	// default db name: restful
+	// default table name: ${Biz}
 	GetDbName  func(query url.Values) string
-	GetColName func(query url.Values) string
+	GetTableName func(query url.Values) string
 }
 
 func (p *Processor) Init() error {
-	p.FieldSet = BuildFieldSet(reflect.TypeOf(p.DataStruct))
-
+	if p.Biz == "" {
+		return fmt.Errorf("biz is empty")
+	}
+	if p.URLPath == "" {
+		p.URLPath = "/" + p.Biz
+	}
 	// DataStruct must contain 'id', 'btime', 'mtime', 'seq' fields
 	//   id: primary key
 	//   btime: means birth time, the time when the doc created
 	//   mtime: means modify time, the time when the doc modified
 	//   seq: means the version of the doc
+	p.FieldSet = BuildFieldSet(reflect.TypeOf(p.DataStruct))
 	if _, ok := p.FieldSet.FMap["id"]; !ok {
 		return fmt.Errorf("%s struct must contain 'id' field", p.Biz)
 	}
@@ -119,8 +125,8 @@ func (p *Processor) Init() error {
 	if p.GetDbName == nil {
 		p.GetDbName = p.DefaultGetDbName()
 	}
-	if p.GetColName == nil {
-		p.GetColName = p.DefaultGetColName()
+	if p.GetTableName == nil {
+		p.GetTableName = p.DefaultGetTableName()
 	}
 	return nil
 }
@@ -141,22 +147,19 @@ func (p *Processor) DefaultGetDbName() func(query url.Values) string {
 		if db := query.Get("db"); db != "" {
 			return db
 		}
-		if gCfg.MgoDefaultDbPrefix != "" {
-			return gCfg.MgoDefaultDbPrefix + p.Biz
+		if gCfg.MgoDefaultDbName != "" {
+			return gCfg.MgoDefaultDbName
 		}
-		return "rest_" + p.Biz
+		return "restful"
 	}
 }
 
-func (p *Processor) DefaultGetColName() func(query url.Values) string {
+func (p *Processor) DefaultGetTableName() func(query url.Values) string {
 	return func(query url.Values) string {
-		if col := query.Get("col"); col != "" {
-			return col
+		if table := query.Get("table"); table != "" {
+			return table
 		}
-		if gCfg.MgoDefaultCol != "" {
-			return gCfg.MgoDefaultCol
-		}
-		return "cn"
+		return p.Biz
 	}
 }
 
@@ -193,7 +196,7 @@ func (p *Processor) DefaultPost() Handler {
 
 		dbs := gCfg.MgoSess.Clone()
 		defer dbs.Close()
-		dbc := dbs.DB(p.GetDbName(query)).C(p.GetColName(query))
+		dbc := dbs.DB(p.GetDbName(query)).C(p.GetTableName(query))
 
 		doc := p.FieldSet.InSort(&info)
 		err = dbc.Insert(&doc)
@@ -237,7 +240,7 @@ func (p *Processor) DefaultPut() Handler {
 
 		dbs := gCfg.MgoSess.Clone()
 		defer dbs.Close()
-		dbc := dbs.DB(p.GetDbName(query)).C(p.GetColName(query))
+		dbc := dbs.DB(p.GetDbName(query)).C(p.GetTableName(query))
 
 		var old map[string]interface{}
 		err = dbc.Find(bson.M{"_id": id}).Select(bson.M{"btime": 1, "seq": 1}).One(&old)
@@ -304,7 +307,7 @@ func (p *Processor) DefaultPatch() Handler {
 
 		dbs := gCfg.MgoSess.Clone()
 		defer dbs.Close()
-		dbc := dbs.DB(p.GetDbName(query)).C(p.GetColName(query))
+		dbc := dbs.DB(p.GetDbName(query)).C(p.GetTableName(query))
 
 		id := vars["id"]
 		now := time.Now().Unix()
@@ -368,7 +371,7 @@ func (p *Processor) DefaultGet() Handler {
 
 		dbs := gCfg.MgoSess.Clone()
 		defer dbs.Close()
-		dbc := dbs.DB(p.GetDbName(query)).C(p.GetColName(query))
+		dbc := dbs.DB(p.GetDbName(query)).C(p.GetTableName(query))
 
 		var info map[string]interface{}
 		err = dbc.Find(bson.M{"_id": id}).Select(selector).One(&info)
@@ -489,7 +492,7 @@ func (p *Processor) DefaultGetPage() Handler {
 					Log.Warnf("search not config")
 					return genRsp(http.StatusInternalServerError, "search not config", nil)
 				}
-				ids, err := EsSearch(p.Biz, search, 2000, 0)
+				ids, err := EsSearch(p.GetDbName(query), p.GetTableName(query), search, 2000, 0)
 				if err != nil {
 					Log.Warnf("EsSearch err, %v", err)
 					return genRsp(http.StatusInternalServerError, err.Error(), nil)
@@ -546,7 +549,7 @@ func (p *Processor) DefaultGetPage() Handler {
 
 		dbs := gCfg.MgoSess.Clone()
 		defer dbs.Close()
-		dbc := dbs.DB(p.GetDbName(query)).C(p.GetColName(query))
+		dbc := dbs.DB(p.GetDbName(query)).C(p.GetTableName(query))
 
 		// count
 		total := 0
@@ -587,7 +590,7 @@ func (p *Processor) DefaultDelete() Handler {
 
 		dbs := gCfg.MgoSess.Clone()
 		defer dbs.Close()
-		dbc := dbs.DB(p.GetDbName(query)).C(p.GetColName(query))
+		dbc := dbs.DB(p.GetDbName(query)).C(p.GetTableName(query))
 
 		err = dbc.Remove(bson.M{"_id": id})
 		if err != nil {
@@ -608,6 +611,8 @@ func (p *Processor) DefaultDelete() Handler {
 func (p *Processor) DefaultOnWriteDone() func(method string, vars map[string]string, query url.Values, data map[string]interface{}) {
 	return func(method string, vars map[string]string, query url.Values, data map[string]interface{}) {
 		var err error
+		db := p.GetDbName(query)
+		table := p.GetTableName(query)
 		switch method {
 		case "POST":
 			fallthrough
@@ -616,16 +621,16 @@ func (p *Processor) DefaultOnWriteDone() func(method string, vars map[string]str
 				id := GetString(data["_id"])
 				content := p.FieldSet.BuildSearchContent(data, p.SearchFields)
 				if content != "" {
-					err = EsUpsert(p.Biz, id, content)
+					err = EsUpsert(db, table, id, content)
 				} else {
-					err = EsRemove(p.Biz, id)
+					err = EsRemove(db, table, id)
 				}
 			}
 		case "PATCH":
 			if gCfg.EsEnable {
 				dbs := gCfg.MgoSess.Clone()
 				defer dbs.Close()
-				dbc := dbs.DB(p.GetDbName(query)).C(p.GetColName(query))
+				dbc := dbs.DB(p.GetDbName(query)).C(p.GetTableName(query))
 				id := vars["id"]
 				var info map[string]interface{}
 				err = dbc.Find(bson.M{"_id": id}).One(&info)
@@ -635,15 +640,15 @@ func (p *Processor) DefaultOnWriteDone() func(method string, vars map[string]str
 				}
 				content := p.FieldSet.BuildSearchContent(info, p.SearchFields)
 				if content != "" {
-					err = EsUpsert(p.Biz, id, content)
+					err = EsUpsert(db, table, id, content)
 				} else {
-					err = EsRemove(p.Biz, id)
+					err = EsRemove(db, table, id)
 				}
 			}
 		case "DELETE":
 			if gCfg.EsEnable {
 				id := vars["id"]
-				err = EsRemove(p.Biz, id)
+				err = EsRemove(db, table, id)
 			}
 		}
 		if err != nil {
