@@ -16,11 +16,13 @@ import (
 
 type Processor struct {
 	// Business name, functions:
-	//   1. default value of table name: ${Biz}
+	//   1. default value of TableName
 	//   2. default value of URLPath
-	//   3. default value of elasticsearch doc field "table"
 	//   3. logs
 	Biz string
+
+	// Table name, using ${Biz} if empty
+	TableName string
 
 	// URL Path as service, usually equal to Biz
 	URLPath string
@@ -59,7 +61,7 @@ type Processor struct {
 	// specify db and table name from URL Query
 	// e.g.: /path?db=dbName&table=tableName
 	// default db name: restful
-	// default table name: ${Biz}
+	// default table name: ${TableName}
 	GetDbName  func(query url.Values) string
 	GetTableName func(query url.Values) string
 }
@@ -67,6 +69,9 @@ type Processor struct {
 func (p *Processor) Init() error {
 	if p.Biz == "" {
 		return fmt.Errorf("biz is empty")
+	}
+	if p.TableName == "" {
+		p.TableName = p.Biz
 	}
 	if p.URLPath == "" {
 		p.URLPath = "/" + p.Biz
@@ -147,8 +152,8 @@ func (p *Processor) DefaultGetDbName() func(query url.Values) string {
 		if db := query.Get("db"); db != "" {
 			return db
 		}
-		if gCfg.MgoDefaultDbName != "" {
-			return gCfg.MgoDefaultDbName
+		if gCfg.DefaultDbName != "" {
+			return gCfg.DefaultDbName
 		}
 		return "restful"
 	}
@@ -159,7 +164,7 @@ func (p *Processor) DefaultGetTableName() func(query url.Values) string {
 		if table := query.Get("table"); table != "" {
 			return table
 		}
-		return p.Biz
+		return p.TableName
 	}
 }
 

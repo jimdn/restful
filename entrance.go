@@ -2,6 +2,7 @@ package restful
 
 import (
 	"errors"
+	"fmt"
 	"github.com/globalsign/mgo"
 	"github.com/gorilla/mux"
 )
@@ -9,7 +10,7 @@ import (
 type GlobalConfig struct {
 	Mux                *mux.Router  // gorilla/mux
 	MgoSess            *mgo.Session // mongodb session
-	MgoDefaultDbName   string       // mongodb default db name, using "restful" if not setting
+	DefaultDbName      string       // default db name, using "restful" if not setting
 	EsEnable           bool         // enable es for search
 	EsUrl              string       // es url, default: http://127.0.0.1:9200
 	EsUser             string       // es username
@@ -37,8 +38,15 @@ func Init(cfg *GlobalConfig, processors *[]Processor) error {
 		}
 	}
 
+	bizMap := make(map[string]bool)
 	for i := 0; i < len(*processors); i++ {
 		p := &(*processors)[i]
+		if _, ok := bizMap[p.Biz]; ok {
+			return fmt.Errorf("biz: %s conflict", p.Biz)
+		} else {
+			bizMap[p.Biz] = true
+		}
+
 		err := p.Init()
 		if err != nil {
 			return err
