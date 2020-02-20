@@ -1,4 +1,4 @@
-module github.com/jimdn/restful
+module github.com/jimdn/restful/v2
 
 go 1.13
 

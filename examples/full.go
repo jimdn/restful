@@ -7,7 +7,7 @@ import (
 
 	"github.com/globalsign/mgo"
 	"github.com/gorilla/mux"
-	"github.com/jimdn/restful"
+	"github.com/jimdn/restful/v2"
 )
 
 // step 1: init data structure
