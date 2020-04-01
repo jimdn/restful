@@ -142,44 +142,59 @@ func (fs *FieldSet) CheckObject(obj map[string]interface{}, dotOk bool) error {
 
 func (fs *FieldSet) check(obj map[string]interface{}, prefix []string, dotOk bool, invalidFields map[string]interface{}) {
 	for k, value := range obj {
+		path := append(prefix, k)
+		full := strings.Join(path, ".")
+		kind := KindInvalid
+		ok := false
+
+		// field contains dot
 		if strings.Index(k, ".") >= 0 {
 			if !dotOk {
 				invalidFields[k] = "dot not allow"
 				delete(obj, k)
 				continue
 			}
-
 			// dot field in object is invalid
 			if len(prefix) > 0 {
 				invalidFields[k] = "dot invalid"
 				delete(obj, k)
 				continue
 			}
-
-			// check map
-			kind, ok := fs.IsMapMember(k)
+			// map field
+			kind, ok = fs.IsMapMember(k)
 			if ok {
+				// check map field type
 				v := ParseKindValue(value, kind-KindMapBase)
 				if v == nil {
 					invalidFields[k] = "type mismatch"
 					delete(obj, k)
 					continue
 				}
+				// check read only or create only
+				if fs.IsFieldReadOnly(full) {
+					invalidFields[full] = "read only"
+					delete(obj, full)
+					continue
+				}
+				if fs.IsFieldCreateOnly(full) {
+					invalidFields[full] = "create only"
+					delete(obj, full)
+					continue
+				}
+				continue
 			}
 		}
 
-		path := append(prefix, k)
-		full := strings.Join(path, ".")
-		kind := KindInvalid
-		ok := false
+		// ordinary field
+		kind, ok = fs.IsFieldMember(full)
+		if !ok {
+			invalidFields[full] = "unknown"
+			delete(obj, full)
+			continue
+		}
+		// check read only or create only
 		if dotOk {
 			// PATCH method, update
-			kind, ok = fs.IsFieldMember(full)
-			if !ok {
-				invalidFields[full] = "unknown"
-				delete(obj, full)
-				continue
-			}
 			if fs.IsFieldReadOnly(full) {
 				invalidFields[full] = "read only"
 				delete(obj, full)
@@ -192,18 +207,13 @@ func (fs *FieldSet) check(obj map[string]interface{}, prefix []string, dotOk boo
 			}
 		} else {
 			// POST or PUT method, create
-			kind, ok = fs.IsFieldMember(full)
-			if !ok {
-				invalidFields[full] = "unknown"
-				delete(obj, full)
-				continue
-			}
 			if fs.IsFieldReadOnly(full) {
 				invalidFields[full] = "read only"
 				delete(obj, full)
 				continue
 			}
 		}
+		// check field type
 		v := ParseKindValue(value, kind)
 		if v == nil {
 			invalidFields[full] = "type mismatch"
@@ -244,11 +254,17 @@ func (fs *FieldSet) IsMapMember(field string) (uint, bool) {
 }
 
 func (fs *FieldSet) IsFieldCreateOnly(field string) bool {
-	return fs.FMap[field].CreateOnly
+	if _, ok := fs.FMap[field]; ok {
+		return fs.FMap[field].CreateOnly
+	}
+	return false
 }
 
 func (fs *FieldSet) IsFieldReadOnly(field string) bool {
-	return fs.FMap[field].ReadOnly
+	if _, ok := fs.FMap[field]; ok {
+		return fs.FMap[field].ReadOnly
+	}
+	return false
 }
 
 func (fs *FieldSet) SetCreateOnlyFields(fields []string) {
