@@ -171,14 +171,14 @@ func (fs *FieldSet) check(obj map[string]interface{}, prefix []string, dotOk boo
 					continue
 				}
 				// check read only or create only
-				if fs.IsFieldReadOnly(full) {
-					invalidFields[full] = "read only"
-					delete(obj, full)
+				if fs.IsFieldReadOnly(k) {
+					invalidFields[k] = "read only"
+					delete(obj, k)
 					continue
 				}
-				if fs.IsFieldCreateOnly(full) {
-					invalidFields[full] = "create only"
-					delete(obj, full)
+				if fs.IsFieldCreateOnly(k) {
+					invalidFields[k] = "create only"
+					delete(obj, k)
 					continue
 				}
 				continue
