@@ -179,9 +179,13 @@ func (p *Processor) DefaultPost() Handler {
 
 		if id, ok := info["id"]; ok {
 			v := GetString(id)
-			if len(v) > 64 || v == "" {
-				Log.Warnf("custom id too long or empty")
-				return genRsp(http.StatusBadRequest, "custom id too long or empty", nil)
+			if v == "" {
+				Log.Warnf("custom id empty")
+				return genRsp(http.StatusBadRequest, "custom id empty", nil)
+			}
+			if len(v) > 128 {
+				Log.Warnf("custom id too long")
+				return genRsp(http.StatusBadRequest, "custom id too long", nil)
 			}
 		} else {
 			info["id"] = UUID()
@@ -231,6 +235,10 @@ func (p *Processor) DefaultPut() Handler {
 
 		id := vars["id"]
 		info["id"] = id
+		if len(id) > 128 {
+			Log.Warnf("id too long")
+			return genRsp(http.StatusBadRequest, "id too long", nil)
+		}
 		err = p.FieldSet.CheckObject(info, false)
 		if err != nil {
 			Log.Warnf("invalid field exists, biz=%v err=%v", p.Biz, err)
