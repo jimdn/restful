@@ -53,6 +53,7 @@ type Processor struct {
 	GetHandler     Handler
 	GetPageHandler Handler
 	DeleteHandler  Handler
+	TriggerHandler Handler
 
 	// Do something after data write success
 	//   1. update search data to es
@@ -106,6 +107,12 @@ func (p *Processor) Init() error {
 	Log.Debugf("%v FieldSet %v", p.Biz, p.FieldSet)
 
 	// default value
+	if p.GetDbName == nil {
+		p.GetDbName = p.DefaultGetDbName()
+	}
+	if p.GetTableName == nil {
+		p.GetTableName = p.DefaultGetTableName()
+	}
 	if p.PostHandler == nil {
 		p.PostHandler = p.DefaultPost()
 	}
@@ -124,27 +131,28 @@ func (p *Processor) Init() error {
 	if p.DeleteHandler == nil {
 		p.DeleteHandler = p.DefaultDelete()
 	}
+	if p.TriggerHandler == nil {
+		p.TriggerHandler = p.DefaultTrigger()
+	}
 	if p.OnWriteDone == nil {
 		p.OnWriteDone = p.DefaultOnWriteDone()
 	}
-	if p.GetDbName == nil {
-		p.GetDbName = p.DefaultGetDbName()
-	}
-	if p.GetTableName == nil {
-		p.GetTableName = p.DefaultGetTableName()
-	}
+
 	return nil
 }
 
 func (p *Processor) Load() {
 	path := p.URLPath
 	pathWithId := p.URLPath + "/{id}"
+	pathWithTrigger := p.URLPath + "/__trigger"
 	Register("POST", path, p.PostHandler)
 	Register("PUT", pathWithId, p.PutHandler)
 	Register("PATCH", pathWithId, p.PatchHandler)
 	Register("GET", pathWithId, p.GetHandler)
 	Register("GET", path, p.GetPageHandler)
 	Register("DELETE", pathWithId, p.DeleteHandler)
+	// TriggerHandler do something internal
+	Register("POST", pathWithTrigger, p.TriggerHandler)
 }
 
 func (p *Processor) DefaultGetDbName() func(query url.Values) string {
@@ -618,6 +626,40 @@ func (p *Processor) DefaultDelete() Handler {
 			go p.OnWriteDone("DELETE", vars, query, nil)
 		}
 		return genRsp(http.StatusOK, "delete ok", map[string]interface{}{"id": id})
+	}
+}
+
+func (p *Processor) DefaultTrigger() Handler {
+	return func(vars map[string]string, query url.Values, body []byte) *Rsp {
+		var err error
+		var info map[string]interface{}
+		if err = json.Unmarshal(body, &info); err != nil {
+			Log.Warnf("unmarshal fail %v [%v]", err, string(body))
+			return genRsp(http.StatusBadRequest, "invalid Body", nil)
+		}
+
+		typ := GetString(info["type"])
+		if typ == "" {
+			Log.Warnf("trigger req need specified type", err, string(body))
+			return genRsp(http.StatusBadRequest, "need type", nil)
+		}
+		switch typ {
+		case "search":
+			id := GetString(info["id"])
+			if id == "" {
+				Log.Warnf("search trigger req need specified id", err, string(body))
+				return genRsp(http.StatusBadRequest, "need id", nil)
+			}
+			if p.OnWriteDone != nil {
+				vars = make(map[string]string)
+				vars["id"] = id
+				go p.OnWriteDone("PATCH", vars, query, nil)
+			}
+		default:
+			Log.Warnf("trigger type: %v unknown", typ)
+			return genRsp(http.StatusBadRequest, fmt.Sprintf("trigger type: %v unknown", typ), nil)
+		}
+		return genRsp(http.StatusOK, "trigger ok", nil)
 	}
 }
 
