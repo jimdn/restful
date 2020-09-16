@@ -2,10 +2,14 @@ package restful
 
 import (
 	"github.com/globalsign/mgo/bson"
+	"github.com/jimdn/objectid"
 	"github.com/nu7hatch/gouuid"
 )
 
-func UUID() string {
+func GenUniqueId() string {
+	if gCfg.DefaultIdGenerator == "objectid" {
+		return objectid.New().String()
+	}
 	u, _ := uuid.NewV4()
 	return u.String()
 }

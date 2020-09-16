@@ -750,6 +750,40 @@ func (fs *FieldSet) BuildSearchContent(obj map[string]interface{}, fields []stri
 	return strings.Join(array, " ")
 }
 
+func (fs *FieldSet) CheckIndexFields(fields []string) ([]string, error) {
+	if fields == nil || len(fields) == 0 {
+		return nil, fmt.Errorf("index fields empty")
+	}
+	if len(fields) != len(RemoveDupArray(fields)) {
+		return nil, fmt.Errorf("index fields dup")
+	}
+	formatFields := make([]string, 0)
+	for i, field := range fields {
+		if len(field) <= 1 {
+			return nil, fmt.Errorf("index fields[%d]=%s invalid", i, field)
+		}
+		r, k := field[0], field[1:]
+		if r != '+' && r != '-' {
+			return nil, fmt.Errorf("index fields[%d]=%s should start with +/- ", i, field)
+		}
+		if k == "id" {
+			return nil, fmt.Errorf("index fields should not contains id field")
+		}
+		if strings.Contains(k, ".") {
+			return nil, fmt.Errorf("index fields should not contains dot")
+		}
+		if _, ok := fs.IsFieldMember(k); !ok {
+			return nil, fmt.Errorf("index fields[%d]=%s unknown", i, field)
+		}
+		if r == '+' {
+			formatFields = append(formatFields, k)
+		} else {
+			formatFields = append(formatFields, field)
+		}
+	}
+	return formatFields, nil
+}
+
 func (fs *FieldSet) ParseSimpleValue(value interface{}, kind uint) interface{} {
 	if value == nil {
 		return nil

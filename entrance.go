@@ -11,6 +11,7 @@ type GlobalConfig struct {
 	Mux                *mux.Router  // gorilla/mux
 	MgoSess            *mgo.Session // mongodb session
 	DefaultDbName      string       // default db name, using "restful" if not setting
+	DefaultIdGenerator string       // default id gnerator, objectid or uuid, using objectid if not setting
 	EsEnable           bool         // enable es for search
 	EsUrl              string       // es url, default: http://127.0.0.1:9200
 	EsUser             string       // es username
@@ -31,6 +32,9 @@ func Init(cfg *GlobalConfig, processors *[]Processor) error {
 	}
 
 	gCfg = *cfg
+	if gCfg.DefaultIdGenerator == "" {
+		gCfg.DefaultIdGenerator = "objectid"
+	}
 	if gCfg.EsEnable {
 		err := InitEsParam(gCfg.EsUrl, gCfg.EsUser, gCfg.EsPwd, gCfg.EsIndex, gCfg.EsAnalyzer, gCfg.EsSearchAnalyzer)
 		if err != nil {
@@ -53,5 +57,7 @@ func Init(cfg *GlobalConfig, processors *[]Processor) error {
 		}
 		p.Load()
 	}
+
+	go ensureIndexTask()
 	return nil
 }

@@ -43,6 +43,9 @@ type Processor struct {
 	// fields can not be written or update, data should be loaded into DB by other ways
 	ReadOnlyFields []string
 
+	// indexes will be created in database/table
+	Indexes []Index
+
 	// fields type and R/W config
 	FieldSet *FieldSet
 
@@ -99,6 +102,16 @@ func (p *Processor) Init() error {
 	err := p.FieldSet.CheckSearchFields(p.SearchFields)
 	if err != nil {
 		return fmt.Errorf("%s %s", p.Biz, err.Error())
+	}
+
+	if p.Indexes != nil {
+		for i := 0; i < len(p.Indexes); i++ {
+			formatFields, err := p.FieldSet.CheckIndexFields(p.Indexes[i].Key)
+			if err != nil {
+				return fmt.Errorf("%s index[%v] check err: %s", p.Biz, p.Indexes[i].Key, err.Error())
+			}
+			p.Indexes[i].Key = formatFields
+		}
 	}
 
 	p.FieldSet.SetCreateOnlyFields(p.CreateOnlyFields)
@@ -196,7 +209,7 @@ func (p *Processor) DefaultPost() Handler {
 				return genRsp(http.StatusBadRequest, "custom id too long", nil)
 			}
 		} else {
-			info["id"] = UUID()
+			info["id"] = GenUniqueId()
 		}
 
 		err = p.FieldSet.CheckObject(info, false)
@@ -205,6 +218,8 @@ func (p *Processor) DefaultPost() Handler {
 			return genRsp(http.StatusBadRequest, err.Error(), nil)
 		}
 		p.FieldSet.InReplace(&info)
+
+		Log.Debugf("POST %v query=%v", p.URLPath, query)
 
 		now := time.Now().Unix()
 		info["btime"] = now
@@ -227,6 +242,14 @@ func (p *Processor) DefaultPost() Handler {
 
 		if p.OnWriteDone != nil {
 			go p.OnWriteDone("POST", vars, query, info)
+		}
+		// ensure index
+		if p.Indexes != nil && len(p.Indexes) > 0 {
+			getIndexEnsureList().Push(&indexToEnsureStruct{
+				DB:        p.GetDbName(query),
+				Table:     p.GetTableName(query),
+				Processor: p,
+			})
 		}
 		return genRsp(http.StatusOK, "post ok", map[string]interface{}{"id": info["_id"], "seq": info["seq"]})
 	}
@@ -253,6 +276,8 @@ func (p *Processor) DefaultPut() Handler {
 			return genRsp(http.StatusBadRequest, err.Error(), nil)
 		}
 		p.FieldSet.InReplace(&info)
+
+		Log.Debugf("PUT %v/%v query=%v", p.URLPath, id, query)
 
 		now := time.Now().Unix()
 		info["btime"] = now
@@ -295,6 +320,14 @@ func (p *Processor) DefaultPut() Handler {
 		if p.OnWriteDone != nil {
 			go p.OnWriteDone("PUT", vars, query, info)
 		}
+		// ensure index
+		if p.Indexes != nil && len(p.Indexes) > 0 {
+			getIndexEnsureList().Push(&indexToEnsureStruct{
+				DB:        p.GetDbName(query),
+				Table:     p.GetTableName(query),
+				Processor: p,
+			})
+		}
 		return genRsp(http.StatusOK, "put ok", map[string]interface{}{"id": info["_id"], "seq": info["seq"]})
 	}
 }
@@ -326,12 +359,15 @@ func (p *Processor) DefaultPatch() Handler {
 			return genRsp(http.StatusBadRequest, "need seq", nil)
 		}
 
+		now := time.Now().Unix()
+		id := vars["id"]
+
+		Log.Debugf("PATCH %v/%v query=%v", p.URLPath, id, query)
+
 		dbs := gCfg.MgoSess.Clone()
 		defer dbs.Close()
 		dbc := dbs.DB(p.GetDbName(query)).C(p.GetTableName(query))
 
-		id := vars["id"]
-		now := time.Now().Unix()
 		if ignoreSeq {
 			if _, ok := info["seq"]; ok {
 				delete(info, "seq")
@@ -361,6 +397,14 @@ func (p *Processor) DefaultPatch() Handler {
 		if p.OnWriteDone != nil {
 			go p.OnWriteDone("PATCH", vars, query, info)
 		}
+		// ensure index
+		if p.Indexes != nil && len(p.Indexes) > 0 {
+			getIndexEnsureList().Push(&indexToEnsureStruct{
+				DB:        p.GetDbName(query),
+				Table:     p.GetTableName(query),
+				Processor: p,
+			})
+		}
 		if ignoreSeq {
 			return genRsp(http.StatusOK, "patch ok", map[string]interface{}{"id": id})
 		}
@@ -389,6 +433,17 @@ func (p *Processor) DefaultGet() Handler {
 			}
 		}
 		p.FieldSet.InReplace(&selector)
+
+		Log.Debugf("GET %v/%v query=%v select=%v", p.URLPath, id, query, selector)
+
+		// ensure index
+		if p.Indexes != nil && len(p.Indexes) > 0 {
+			getIndexEnsureList().Push(&indexToEnsureStruct{
+				DB:        p.GetDbName(query),
+				Table:     p.GetTableName(query),
+				Processor: p,
+			})
+		}
 
 		dbs := gCfg.MgoSess.Clone()
 		defer dbs.Close()
@@ -566,7 +621,16 @@ func (p *Processor) DefaultGetPage() Handler {
 		}
 		p.FieldSet.InReplace(&selector)
 
-		Log.Debugf("query=%v, condition=%v, order=%v, select=%v", query, condition, orderFields, selector)
+		Log.Debugf("GET %v query=%v condition=%v order=%v select=%v", p.URLPath, query, condition, orderFields, selector)
+
+		// ensure index
+		if p.Indexes != nil && len(p.Indexes) > 0 {
+			getIndexEnsureList().Push(&indexToEnsureStruct{
+				DB:        p.GetDbName(query),
+				Table:     p.GetTableName(query),
+				Processor: p,
+			})
+		}
 
 		dbs := gCfg.MgoSess.Clone()
 		defer dbs.Close()
@@ -609,6 +673,8 @@ func (p *Processor) DefaultDelete() Handler {
 		var err error
 		id := vars["id"]
 
+		Log.Debugf("DELETE %v/%v query=%v", p.URLPath, id, query)
+
 		dbs := gCfg.MgoSess.Clone()
 		defer dbs.Close()
 		dbc := dbs.DB(p.GetDbName(query)).C(p.GetTableName(query))
@@ -625,12 +691,21 @@ func (p *Processor) DefaultDelete() Handler {
 		if p.OnWriteDone != nil {
 			go p.OnWriteDone("DELETE", vars, query, nil)
 		}
+		// ensure index
+		if p.Indexes != nil && len(p.Indexes) > 0 {
+			getIndexEnsureList().Push(&indexToEnsureStruct{
+				DB:        p.GetDbName(query),
+				Table:     p.GetTableName(query),
+				Processor: p,
+			})
+		}
 		return genRsp(http.StatusOK, "delete ok", map[string]interface{}{"id": id})
 	}
 }
 
 func (p *Processor) DefaultTrigger() Handler {
 	return func(vars map[string]string, query url.Values, body []byte) *Rsp {
+		Log.Debugf("POST %v/__trigger query=%v", p.URLPath, query)
 		var err error
 		var info map[string]interface{}
 		if err = json.Unmarshal(body, &info); err != nil {

@@ -6,7 +6,7 @@ A package based on Golang and MongoDB for quickly building HTTP RESTful services
 
 ## Required
 
-- go 1.11+
+- go 1.13+
 - mongodb v3.4.x v3.6.x
 - elasticsearch v6.8.x v7.x.x (if enable searching)
 
@@ -19,12 +19,6 @@ Use go get.
 Then import the package into your own code.
 
 	import "github.com/jimdn/restful/v2"
-
-## Dependencies
-
-- github.com/gorilla/mux
-- github.com/globalsign/mgo
-- github.com/nu7hatch/gouuid
 
 ## Feature Overview
 
