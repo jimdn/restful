@@ -769,9 +769,6 @@ func (fs *FieldSet) CheckIndexFields(fields []string) ([]string, error) {
 		if k == "id" {
 			return nil, fmt.Errorf("index fields should not contains id field")
 		}
-		if strings.Contains(k, ".") {
-			return nil, fmt.Errorf("index fields should not contains dot")
-		}
 		if _, ok := fs.IsFieldMember(k); !ok {
 			return nil, fmt.Errorf("index fields[%d]=%s unknown", i, field)
 		}
