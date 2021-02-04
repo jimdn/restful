@@ -6,6 +6,8 @@ import (
 	"github.com/nu7hatch/gouuid"
 )
 
+// GenUniqueId is an function to gen a unique id with STRING type
+// support objectid or uuid
 func GenUniqueId() string {
 	if gCfg.DefaultIdGenerator == "objectid" {
 		return objectid.New().String()
@@ -14,6 +16,9 @@ func GenUniqueId() string {
 	return u.String()
 }
 
+// GetStringD check s type
+// if s is String, return its value
+// if s is not STRING, return default d
 func GetStringD(s interface{}, d string) string {
 	if s == nil {
 		return d
@@ -27,17 +32,26 @@ func GetStringD(s interface{}, d string) string {
 	return d
 }
 
+// GetString check s type
+// if s is String, return its value
+// if s is not STRING, return empty string
 func GetString(s interface{}) string {
 	return GetStringD(s, "")
 }
 
-func CheckBool(value interface{}) interface{} {
-	if v, ok := value.(bool); ok {
-		return v
+// CheckBool check v type
+// if v is BOOL, return v
+// if v is not BOOL, return nil
+func CheckBool(v interface{}) interface{} {
+	if b, ok := v.(bool); ok {
+		return b
 	}
 	return nil
 }
 
+// CheckInt check value type
+// if value is any type represent INT, return INT64 value
+// if value is not any type represent INT, return nil
 func CheckInt(value interface{}) interface{} {
 	switch v := value.(type) {
 	case int:
@@ -69,6 +83,9 @@ func CheckInt(value interface{}) interface{} {
 	return nil
 }
 
+// CheckUint check value type
+// if value is any type represent UINT, return UINT64 value
+// if value is not any type represent UINT, return nil
 func CheckUint(value interface{}) interface{} {
 	switch v := value.(type) {
 	case int:
@@ -99,6 +116,9 @@ func CheckUint(value interface{}) interface{} {
 	return nil
 }
 
+// CheckFloat check value type
+// if value is any type represent FLOAT, return FLOAT64 value
+// if value is not any type represent FLOAT, return nil
 func CheckFloat(value interface{}) interface{} {
 	switch v := value.(type) {
 	case int:
@@ -129,6 +149,9 @@ func CheckFloat(value interface{}) interface{} {
 	return nil
 }
 
+// CheckString check value type
+// if value is any type represent STRING, return STRING value
+// if value is not any type represent STRING, return nil
 func CheckString(value interface{}) interface{} {
 	switch v := value.(type) {
 	case string:
@@ -139,6 +162,9 @@ func CheckString(value interface{}) interface{} {
 	return nil
 }
 
+// CheckObject check value type
+// if value is OBJECT, return its value
+// if value is not OBJECT, return nil
 func CheckObject(value interface{}) interface{} {
 	switch v := value.(type) {
 	case map[string]interface{}:
@@ -147,6 +173,7 @@ func CheckObject(value interface{}) interface{} {
 	return nil
 }
 
+// IsEmptyBool
 func IsEmptyBool(d interface{}) bool {
 	if d == nil {
 		return true
@@ -155,6 +182,7 @@ func IsEmptyBool(d interface{}) bool {
 	return ok && v == false
 }
 
+// IsEmptyNumber
 func IsEmptyNumber(d interface{}) bool {
 	if d == nil {
 		return true
@@ -163,6 +191,7 @@ func IsEmptyNumber(d interface{}) bool {
 	return ok && v == 0
 }
 
+// IsEmptyString
 func IsEmptyString(d interface{}) bool {
 	if d == nil {
 		return true
@@ -171,6 +200,7 @@ func IsEmptyString(d interface{}) bool {
 	return ok && v == ""
 }
 
+// IsEmptyArray
 func IsEmptyArray(d interface{}) bool {
 	if d == nil {
 		return true
@@ -179,6 +209,7 @@ func IsEmptyArray(d interface{}) bool {
 	return ok && len(v) == 0
 }
 
+// IsEmptyObject
 func IsEmptyObject(d interface{}) bool {
 	if d == nil {
 		return true
@@ -192,6 +223,7 @@ func IsEmptyObject(d interface{}) bool {
 	return false
 }
 
+// RemoveDupArray
 func RemoveDupArray(s []string) []string {
 	m := make(map[string]bool)
 	for i := range s {

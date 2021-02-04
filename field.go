@@ -130,6 +130,7 @@ func parseKind(typ reflect.Type) uint {
 	return KindInvalid
 }
 
+// CheckObject check obj is valid or not
 func (fs *FieldSet) CheckObject(obj map[string]interface{}, dotOk bool) error {
 	invalidFields := make(map[string]interface{})
 	prefix := make([]string, 0, 0)
@@ -231,6 +232,7 @@ func (fs *FieldSet) check(obj map[string]interface{}, prefix []string, dotOk boo
 	}
 }
 
+// IsFieldMember check field is a member of Struct or not
 func (fs *FieldSet) IsFieldMember(field string) (uint, bool) {
 	if _, ok := fs.FMap[field]; !ok {
 		return fs.IsMapMember(field)
@@ -239,6 +241,7 @@ func (fs *FieldSet) IsFieldMember(field string) (uint, bool) {
 	return kind, true
 }
 
+// IsMapMember check field is a member of Struct map field or not
 func (fs *FieldSet) IsMapMember(field string) (uint, bool) {
 	pos := strings.LastIndex(field, ".")
 	if pos == -1 {
@@ -253,6 +256,7 @@ func (fs *FieldSet) IsMapMember(field string) (uint, bool) {
 	return KindInvalid, false
 }
 
+// IsFieldCreateOnly check field is create only or not
 func (fs *FieldSet) IsFieldCreateOnly(field string) bool {
 	if _, ok := fs.FMap[field]; ok {
 		return fs.FMap[field].CreateOnly
@@ -260,6 +264,7 @@ func (fs *FieldSet) IsFieldCreateOnly(field string) bool {
 	return false
 }
 
+// IsFieldReadOnly check field is read only or not
 func (fs *FieldSet) IsFieldReadOnly(field string) bool {
 	if _, ok := fs.FMap[field]; ok {
 		return fs.FMap[field].ReadOnly
@@ -267,6 +272,7 @@ func (fs *FieldSet) IsFieldReadOnly(field string) bool {
 	return false
 }
 
+// SetCreateOnlyFields
 func (fs *FieldSet) SetCreateOnlyFields(fields []string) {
 	fields = RemoveDupArray(fields)
 	for _, field := range fields {
@@ -279,6 +285,7 @@ func (fs *FieldSet) SetCreateOnlyFields(fields []string) {
 	}
 }
 
+// SetReadOnlyFields
 func (fs *FieldSet) SetReadOnlyFields(fields []string) {
 	fields = RemoveDupArray(fields)
 	for _, field := range fields {
@@ -291,6 +298,7 @@ func (fs *FieldSet) SetReadOnlyFields(fields []string) {
 	}
 }
 
+// InReplace adapted MongoDB '_id' field
 func (fs *FieldSet) InReplace(value *map[string]interface{}) {
 	// id --> _id
 	if v, ok := (*value)["id"]; ok {
@@ -316,6 +324,7 @@ func (fs *FieldSet) InReplace(value *map[string]interface{}) {
 	}
 }
 
+// OutReplace adapted MongoDB '_id' field
 func (fs *FieldSet) OutReplace(value *map[string]interface{}) {
 	// _id --> id
 	if v, ok := (*value)["_id"]; ok {
@@ -324,6 +333,7 @@ func (fs *FieldSet) OutReplace(value *map[string]interface{}) {
 	}
 }
 
+// OutReplaceArray adapted MongoDB '_id' field for ARRAY
 func (fs *FieldSet) OutReplaceArray(values []interface{}) {
 	for _, value := range values {
 		switch v := value.(type) {
@@ -337,6 +347,7 @@ func (fs *FieldSet) OutReplaceArray(values []interface{}) {
 	}
 }
 
+// InSort sort data
 func (fs *FieldSet) InSort(data *map[string]interface{}) bson.D {
 	d := make([]bson.DocElem, 0)
 	for _, value := range (*fs).FSli {
@@ -354,6 +365,7 @@ func (fs *FieldSet) InSort(data *map[string]interface{}) bson.D {
 	return d
 }
 
+// BuildFilterObj
 func (fs *FieldSet) BuildFilterObj(filter map[string]interface{}, cond map[string]interface{}) error {
 	for k, value := range filter {
 		if _, exist := cond[k]; exist {
@@ -407,6 +419,7 @@ func (fs *FieldSet) BuildFilterObj(filter map[string]interface{}, cond map[strin
 	return nil
 }
 
+// BuildRangeObj
 func (fs *FieldSet) BuildRangeObj(rang map[string]interface{}, cond map[string]interface{}) error {
 	for k, value := range rang {
 		if _, exist := cond[k]; exist {
@@ -478,6 +491,7 @@ func (fs *FieldSet) BuildRangeObj(rang map[string]interface{}, cond map[string]i
 	return nil
 }
 
+// BuildInObj
 func (fs *FieldSet) BuildInObj(in map[string]interface{}, cond map[string]interface{}) error {
 	for k, value := range in {
 		if _, exist := cond[k]; exist {
@@ -507,6 +521,7 @@ func (fs *FieldSet) BuildInObj(in map[string]interface{}, cond map[string]interf
 	return nil
 }
 
+// BuildNinObj
 func (fs *FieldSet) BuildNinObj(nin map[string]interface{}, cond map[string]interface{}) error {
 	for k, value := range nin {
 		if _, exist := cond[k]; exist {
@@ -536,6 +551,7 @@ func (fs *FieldSet) BuildNinObj(nin map[string]interface{}, cond map[string]inte
 	return nil
 }
 
+// BuildAllObj
 func (fs *FieldSet) BuildAllObj(all map[string]interface{}, cond map[string]interface{}) error {
 	for k, value := range all {
 		if _, exist := cond[k]; exist {
@@ -565,6 +581,7 @@ func (fs *FieldSet) BuildAllObj(all map[string]interface{}, cond map[string]inte
 	return nil
 }
 
+// BuildOrObj
 func (fs *FieldSet) BuildOrObj(or []interface{}, cond map[string]interface{}) error {
 	if _, exist := cond["$or"]; exist {
 		return fmt.Errorf("or field condition conflict")
@@ -642,6 +659,7 @@ func (fs *FieldSet) BuildOrObj(or []interface{}, cond map[string]interface{}) er
 	return nil
 }
 
+// BuildOrderArray
 func (fs *FieldSet) BuildOrderArray(order []string, sort *bson.D) error {
 	for _, value := range order {
 		if len(value) <= 1 {
@@ -664,6 +682,7 @@ func (fs *FieldSet) BuildOrderArray(order []string, sort *bson.D) error {
 	return nil
 }
 
+// OrderArray2Slice
 func (fs *FieldSet) OrderArray2Slice(sort *bson.D) []string {
 	r := make([]string, 0, 0)
 	for _, elem := range *sort {
@@ -686,6 +705,7 @@ func (fs *FieldSet) OrderArray2Slice(sort *bson.D) []string {
 	return r
 }
 
+// BuildSelectObj
 func (fs *FieldSet) BuildSelectObj(slice []string, sel map[string]interface{}) error {
 	for _, value := range slice {
 		if len(value) == 0 {
@@ -699,6 +719,7 @@ func (fs *FieldSet) BuildSelectObj(slice []string, sel map[string]interface{}) e
 	return nil
 }
 
+// CheckSearchFields
 func (fs *FieldSet) CheckSearchFields(fields []string) error {
 	fields = RemoveDupArray(fields)
 	for _, field := range fields {
@@ -716,6 +737,7 @@ func (fs *FieldSet) CheckSearchFields(fields []string) error {
 	return nil
 }
 
+// BuildSearchContent
 func (fs *FieldSet) BuildSearchContent(obj map[string]interface{}, fields []string) string {
 	array := make([]string, 0)
 	for _, field := range fields {
@@ -750,6 +772,7 @@ func (fs *FieldSet) BuildSearchContent(obj map[string]interface{}, fields []stri
 	return strings.Join(array, " ")
 }
 
+// CheckIndexFields
 func (fs *FieldSet) CheckIndexFields(fields []string) ([]string, error) {
 	if fields == nil || len(fields) == 0 {
 		return nil, fmt.Errorf("index fields empty")
@@ -781,6 +804,7 @@ func (fs *FieldSet) CheckIndexFields(fields []string) ([]string, error) {
 	return formatFields, nil
 }
 
+// ParseSimpleValue
 func (fs *FieldSet) ParseSimpleValue(value interface{}, kind uint) interface{} {
 	if value == nil {
 		return nil
@@ -802,6 +826,7 @@ func (fs *FieldSet) ParseSimpleValue(value interface{}, kind uint) interface{} {
 	return nil
 }
 
+// ParseSimpleArray
 func (fs *FieldSet) ParseSimpleArray(value interface{}, kind uint) interface{} {
 	if value == nil {
 		return nil
@@ -826,6 +851,7 @@ func (fs *FieldSet) ParseSimpleArray(value interface{}, kind uint) interface{} {
 	return nil
 }
 
+// ParseKindValue
 func ParseKindValue(value interface{}, kind uint) interface{} {
 	switch kind {
 	case KindBool:
@@ -874,6 +900,7 @@ func ParseKindValue(value interface{}, kind uint) interface{} {
 	return nil
 }
 
+// ParseKindArray
 func ParseKindArray(value []interface{}, kind uint) interface{} {
 	r := make([]interface{}, 0, len(value))
 	switch kind {
@@ -899,6 +926,7 @@ func ParseKindArray(value []interface{}, kind uint) interface{} {
 	return r
 }
 
+// ParseKindMap
 func ParseKindMap(value map[string]interface{}, kind uint) interface{} {
 	for _, v := range value {
 		if ParseKindValue(v, kind-KindMapBase) == nil {
@@ -908,6 +936,7 @@ func ParseKindMap(value map[string]interface{}, kind uint) interface{} {
 	return value
 }
 
+// IsEmpty
 func IsEmpty(d interface{}, kind uint) bool {
 	k := kind
 	switch {
@@ -927,6 +956,7 @@ func IsEmpty(d interface{}, kind uint) bool {
 	return false
 }
 
+// EmptyValue
 func EmptyValue(kind uint) interface{} {
 	switch kind {
 	case KindBool:

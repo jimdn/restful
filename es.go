@@ -46,7 +46,7 @@ var gEsIndexConfigFmt = `{
     }
 }`
 
-func InitEsParam(url, user, pwd, index, analyzer, searchAnalyzer string) error {
+func initEsParam(url, user, pwd, index, analyzer, searchAnalyzer string) error {
 	if url != "" {
 		gEsUrl = url
 		gEsUrl = strings.TrimSuffix(gEsUrl, "/")
@@ -67,22 +67,22 @@ func InitEsParam(url, user, pwd, index, analyzer, searchAnalyzer string) error {
 		gEsIndexSearchAnalyzer = searchAnalyzer
 	}
 	indexCfg := fmt.Sprintf(gEsIndexConfigFmt, gEsIndexAnalyzer, gEsIndexSearchAnalyzer)
-	return EsEnsureIndex(indexCfg)
+	return esEnsureIndex(indexCfg)
 }
 
-func EsEnsureIndex(indexCfg string) error {
+func esEnsureIndex(indexCfg string) error {
 	url := fmt.Sprintf("%s/%s?include_type_name=true", gEsUrl, gEsIndex)
 	header := make(map[string]string)
 	header["Content-Type"] = "application/json; charset=utf-8"
 	if gEsUser != "" || gEsPwd != "" {
 		header["Authorization"] = "Basic " + base64.StdEncoding.EncodeToString([]byte(gEsUser + ":" + gEsPwd))
 	}
-	statusCode, _, err := HttpDo(url, "", "GET", header, nil)
+	statusCode, _, err := httpDo(url, "", "GET", header, nil)
 	if err != nil {
 		return fmt.Errorf("ensure es index get err: %v", err)
 	}
 	if statusCode == http.StatusNotFound {
-		statusCode, indexPutRspData, err := HttpDo(url, "", "PUT", header, []byte(indexCfg))
+		statusCode, indexPutRspData, err := httpDo(url, "", "PUT", header, []byte(indexCfg))
 		if err != nil {
 			return fmt.Errorf("ensure es index http err: %v", err)
 		}
@@ -112,7 +112,7 @@ type SearchResponse struct {
 	} `json:"hits"`
 }
 
-func EsUpsert(db, table, id, content string) error {
+func esUpsert(db, table, id, content string) error {
 	req := map[string]interface{}{
 		"db":      db,
 		"table":   table,
@@ -126,7 +126,7 @@ func EsUpsert(db, table, id, content string) error {
 	if gEsUser != "" || gEsPwd != "" {
 		header["Authorization"] = "Basic " + base64.StdEncoding.EncodeToString([]byte(gEsUser + ":" + gEsPwd))
 	}
-	statusCode, rspData, err := HttpDo(destURL, "", "PUT", header, reqData)
+	statusCode, rspData, err := httpDo(destURL, "", "PUT", header, reqData)
 	if err != nil {
 		return err
 	}
@@ -141,7 +141,7 @@ func EsUpsert(db, table, id, content string) error {
 	return nil
 }
 
-func EsRemove(db, table, id string) error {
+func esRemove(db, table, id string) error {
 	docId := fmt.Sprintf("%s_%s_%s", db, table, id)
 	destURL := fmt.Sprintf("%s/%s/_doc/%s", gEsUrl, gEsIndex, docId)
 	header := make(map[string]string)
@@ -149,7 +149,7 @@ func EsRemove(db, table, id string) error {
 	if gEsUser != "" || gEsPwd != "" {
 		header["Authorization"] = "Basic " + base64.StdEncoding.EncodeToString([]byte(gEsUser + ":" + gEsPwd))
 	}
-	statusCode, rspData, err := HttpDo(destURL, "", "DELETE", header, nil)
+	statusCode, rspData, err := httpDo(destURL, "", "DELETE", header, nil)
 	if err != nil {
 		return err
 	}
@@ -164,7 +164,7 @@ func EsRemove(db, table, id string) error {
 	return nil
 }
 
-func EsSearch(db, table, search string, size, offset int) ([]string, error) {
+func esSearch(db, table, search string, size, offset int) ([]string, error) {
 	req := map[string]interface{}{
 		"track_scores": true,
 		"query": map[string]interface{}{
@@ -194,7 +194,7 @@ func EsSearch(db, table, search string, size, offset int) ([]string, error) {
 	if gEsUser != "" || gEsPwd != "" {
 		header["Authorization"] = "Basic " + base64.StdEncoding.EncodeToString([]byte(gEsUser + ":" + gEsPwd))
 	}
-	statusCode, rspData, err := HttpDo(url, "", "GET", header, reqData)
+	statusCode, rspData, err := httpDo(url, "", "GET", header, reqData)
 	if err != nil {
 		return nil, err
 	}
@@ -228,7 +228,7 @@ var gNetClient = &http.Client{
 	Timeout: 4 * time.Second,
 }
 
-func HttpDo(url, host, method string, header map[string]string, body []byte) (int, []byte, error) {
+func httpDo(url, host, method string, header map[string]string, body []byte) (int, []byte, error) {
 	var err error
 	var req *http.Request
 	if body != nil {

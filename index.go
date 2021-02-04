@@ -5,6 +5,7 @@ import(
 	"fmt"
 	"github.com/globalsign/mgo"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 )
@@ -136,6 +137,9 @@ func ensureIndexTask() {
 		dbc := dbs.DB(idx.DB).C(idx.Table)
 		indexesInDB, err := dbc.Indexes()
 		if err != nil {
+			if strings.Contains(err.Error(), "ns does not exist") {
+				continue
+			}
 			Log.Warnf("db=%s table=%s GetIndexes err: %v", idx.DB, idx.Table, err)
 			continue
 		}

@@ -36,7 +36,7 @@ func Init(cfg *GlobalConfig, processors *[]Processor) error {
 		gCfg.DefaultIdGenerator = "objectid"
 	}
 	if gCfg.EsEnable {
-		err := InitEsParam(gCfg.EsUrl, gCfg.EsUser, gCfg.EsPwd, gCfg.EsIndex, gCfg.EsAnalyzer, gCfg.EsSearchAnalyzer)
+		err := initEsParam(gCfg.EsUrl, gCfg.EsUser, gCfg.EsPwd, gCfg.EsIndex, gCfg.EsAnalyzer, gCfg.EsSearchAnalyzer)
 		if err != nil {
 			return err
 		}
