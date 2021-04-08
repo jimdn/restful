@@ -4,7 +4,18 @@ import (
 	"github.com/globalsign/mgo/bson"
 	"github.com/jimdn/objectid"
 	"github.com/nu7hatch/gouuid"
+	"math/rand"
 )
+
+// RandString is an function to gen a rand string
+func RandString(n int) string {
+	letter := []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letter[rand.Intn(len(letter))]
+	}
+	return string(b)
+}
 
 // GenUniqueId is an function to gen a unique id with STRING type
 // support objectid or uuid
