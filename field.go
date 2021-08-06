@@ -659,6 +659,23 @@ func (fs *FieldSet) BuildOrObj(or []interface{}, cond map[string]interface{}) er
 	return nil
 }
 
+// BuildRegexSearchObj
+func (fs *FieldSet) BuildRegexSearchObj(search string, regexSearchFields []string, cond map[string]interface{}) error {
+	if _, exist := cond["$or"]; exist {
+		return fmt.Errorf("or field condition conflict")
+	}
+	orCond := make([]interface{}, 0)
+	for _, field := range regexSearchFields {
+		condition := make(map[string]interface{})
+		condition[field] = map[string]interface{}{"$regex": search}
+		orCond = append(orCond, condition)
+	}
+	if len(orCond) > 0 {
+		cond["$or"] = orCond
+	}
+	return nil
+}
+
 // BuildOrderArray
 func (fs *FieldSet) BuildOrderArray(order []string, sort *bson.D) error {
 	for _, value := range order {
@@ -732,6 +749,24 @@ func (fs *FieldSet) CheckSearchFields(fields []string) error {
 		}
 		if kind != KindString && kind != KindArrayString {
 			return fmt.Errorf("search field %s not string", field)
+		}
+	}
+	return nil
+}
+
+// CheckRegexSearchFields
+func (fs *FieldSet) CheckRegexSearchFields(fields []string) error {
+	fields = RemoveDupArray(fields)
+	for _, field := range fields {
+		if len(field) <= 0 {
+			return fmt.Errorf("regex search field %s invalid", field)
+		}
+		kind, ok := fs.IsFieldMember(field)
+		if !ok {
+			return fmt.Errorf("regex search field %s unknown", field)
+		}
+		if kind != KindString {
+			return fmt.Errorf("regex search field %s not string", field)
 		}
 	}
 	return nil

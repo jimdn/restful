@@ -36,6 +36,9 @@ type Processor struct {
 	// field's type must be string or []string
 	SearchFields []string
 
+	// fields for search implemented by db regex
+	RegexSearchFields []string
+
 	// fields CreateOnly
 	// fields can only be written when creating by POST or PUT
 	CreateOnlyFields []string
@@ -102,6 +105,11 @@ func (p *Processor) Init() error {
 	}
 
 	err := p.FieldSet.CheckSearchFields(p.SearchFields)
+	if err != nil {
+		return fmt.Errorf("%s %s", p.Biz, err.Error())
+	}
+
+	err = p.FieldSet.CheckRegexSearchFields(p.RegexSearchFields)
 	if err != nil {
 		return fmt.Errorf("%s %s", p.Biz, err.Error())
 	}
@@ -607,25 +615,52 @@ func (p *Processor) defaultGetPage() Handler {
 		if query.Get("search") != "" {
 			search := query.Get("search")
 			if search != "" {
-				if !gCfg.EsEnable {
+				regexSearchByDB := false
+				if len(p.RegexSearchFields) > 0 {
+					regexSearchByDB = true
+					err = p.FieldSet.BuildRegexSearchObj(search, p.RegexSearchFields, condition)
+					if err != nil {
+						Log.Warnf("[rsp] %v GET %v build regex search condition error: %v", reqId, p.URLPath, err)
+						return genRsp(http.StatusBadRequest, "build regex search condition error", nil)
+					}
+				}
+				if gCfg.EsEnable {
+					ids, err := esSearch(p.GetDbName(query), p.GetTableName(query), search, 2000, 0)
+					if err != nil {
+						Log.Warnf("[rsp] %v GET %v EsSearch err, %v", reqId, p.URLPath, err)
+						return genRsp(http.StatusInternalServerError, err.Error(), nil)
+					}
+					if !regexSearchByDB {
+						if len(ids) == 0 {
+							infos := make([]interface{}, 0)
+							Log.Debugf("[rsp] %v GET %v search no results", reqId, p.URLPath)
+							return genRsp(http.StatusOK, "no results found", RspGetPageData{Total: 0, Hits: infos})
+						}
+						if _, exist := condition["id"]; exist {
+							Log.Warnf("[rsp] %v GET %v search id condition conflict", reqId, p.URLPath)
+							return genRsp(http.StatusBadRequest, "search id condition conflict", nil)
+						}
+						condition["id"] = map[string]interface{}{"$in": ids}
+					} else {
+						if len(ids) > 0 {
+							if orCond, exist := condition["$or"]; exist {
+								switch orCondValue := orCond.(type) {
+								case []interface{}:
+									cond := make(map[string]interface{})
+									cond["id"] = map[string]interface{}{"$in": ids}
+									orCondValue = append(orCondValue, cond)
+									condition["$or"] = orCondValue
+								default:
+									Log.Warnf("[rsp] %v GET %v search condition conflict", reqId, p.URLPath)
+									return genRsp(http.StatusBadRequest, "search condition conflict", nil)
+								}
+							}
+						}
+					}
+				}
+				if !regexSearchByDB && !gCfg.EsEnable {
 					Log.Warnf("[rsp] %v GET %v search not config", reqId, p.URLPath)
 					return genRsp(http.StatusInternalServerError, "search not config", nil)
-				}
-				ids, err := esSearch(p.GetDbName(query), p.GetTableName(query), search, 2000, 0)
-				if err != nil {
-					Log.Warnf("[rsp] %v GET %v EsSearch err, %v", reqId, p.URLPath, err)
-					return genRsp(http.StatusInternalServerError, err.Error(), nil)
-				}
-				if len(ids) == 0 {
-					infos := make([]interface{}, 0)
-					Log.Debugf("[rsp] %v GET %v search no results", reqId, p.URLPath)
-					return genRsp(http.StatusOK, "no results found", RspGetPageData{Total: 0, Hits: infos})
-				} else {
-					if _, exist := condition["id"]; exist {
-						Log.Warnf("[rsp] %v GET %v search id condition conflict", reqId, p.URLPath)
-						return genRsp(http.StatusBadRequest, "search id condition conflict", nil)
-					}
-					condition["id"] = map[string]interface{}{"$in": ids}
 				}
 			}
 		}
