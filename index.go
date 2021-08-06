@@ -1,6 +1,6 @@
 package restful
 
-import(
+import (
 	"container/list"
 	"fmt"
 	"github.com/globalsign/mgo"
@@ -10,6 +10,7 @@ import(
 	"time"
 )
 
+// Index describes the definition of an index
 type Index struct {
 	Key    []string // Index key fields; prefix name with dash (-) for descending order
 	Unique bool     // Prevent two documents from having the same index key
@@ -21,6 +22,7 @@ func getIndexMapKey(db, table string) string {
 
 // list to ensure index
 var indexEnsureList *IndexEnsureList
+
 func getIndexEnsureList() *IndexEnsureList {
 	if indexEnsureList == nil {
 		indexEnsureList = new(IndexEnsureList).Init()
@@ -28,27 +30,32 @@ func getIndexEnsureList() *IndexEnsureList {
 	return indexEnsureList
 }
 
+// IndexEnsureList is a structure describes a list of indices to ensure
 type IndexEnsureList struct {
 	sync.Mutex
 	// using map to check elem already in list or not
 	// key: db|table
-	indexToEnsureMap map[string] indexToEnsureStruct
+	indexToEnsureMap map[string]IndexToEnsureStruct
 	// using list to store elem, FIFO
 	indexToEnsureList *list.List
 }
-type indexToEnsureStruct struct {
+
+// IndexToEnsureStruct defines where and how to create the index
+type IndexToEnsureStruct struct {
 	DB        string
 	Table     string
 	Processor *Processor
 }
 
+// Init init the IndexEnsureList
 func (l *IndexEnsureList) Init() *IndexEnsureList {
-	l.indexToEnsureMap = make(map[string]indexToEnsureStruct)
+	l.indexToEnsureMap = make(map[string]IndexToEnsureStruct)
 	l.indexToEnsureList = list.New()
 	return l
 }
 
-func (l *IndexEnsureList) Push(idx *indexToEnsureStruct) {
+// Push push an index into IndexEnsureList
+func (l *IndexEnsureList) Push(idx *IndexToEnsureStruct) {
 	if idx == nil {
 		return
 	}
@@ -63,7 +70,8 @@ func (l *IndexEnsureList) Push(idx *indexToEnsureStruct) {
 	l.indexToEnsureList.PushBack(k)
 }
 
-func (l *IndexEnsureList) Pop() *indexToEnsureStruct {
+// Pop pop an index out of IndexEnsureList
+func (l *IndexEnsureList) Pop() *IndexToEnsureStruct {
 	l.Lock()
 	defer l.Unlock()
 	e := l.indexToEnsureList.Front()
@@ -84,6 +92,7 @@ func (l *IndexEnsureList) Pop() *indexToEnsureStruct {
 // Cache to store index that has been ensured
 // 600 seconds expired, ensure again
 var indexEnsuredMap *IndexEnsuredMap
+
 func getIndexEnsuredMap() *IndexEnsuredMap {
 	if indexEnsuredMap == nil {
 		indexEnsuredMap = &IndexEnsuredMap{
@@ -93,18 +102,21 @@ func getIndexEnsuredMap() *IndexEnsuredMap {
 	return indexEnsuredMap
 }
 
+// IndexEnsuredMap cache to store index that has been ensured
 type IndexEnsuredMap struct {
 	sync.RWMutex
 	// key: db|table
 	M map[string]int64
 }
 
+// Set add an index into the cache
 func (s *IndexEnsuredMap) Set(k string) {
 	s.Lock()
 	defer s.Unlock()
 	s.M[k] = time.Now().Unix() + 600
 }
 
+// Exist check whether an index exists or not
 func (s *IndexEnsuredMap) Exist(k string) bool {
 	now := time.Now().Unix()
 	s.RLock()

@@ -6,7 +6,7 @@ import (
 
 func genSeq(n int64) string {
 	if n == 0 {
-		n += 1
+		n++
 	}
 	return strconv.FormatInt(n, 10)
 }
@@ -16,6 +16,6 @@ func nextSeq(seq string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	n += 1
+	n++
 	return genSeq(n), nil
 }

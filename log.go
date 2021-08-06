@@ -5,6 +5,7 @@ import (
 	"os"
 )
 
+// Logger is an interface for logging
 type Logger interface {
 	Debugf(format string, v ...interface{})
 	Debugln(v ...interface{})
@@ -14,11 +15,12 @@ type Logger interface {
 	Fatalln(v ...interface{})
 }
 
+// Log is a global log handle
 // you can reassign Log to your own Logger which
-// contains the methods above
+// contains the methods Logger interface contains
 var Log Logger
 
-// default Logger
+// ExtLog is the default Logger
 type ExtLog struct {
 	Logger *log.Logger
 }

@@ -11,19 +11,23 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// Rsp is a general returning structure for all request
 type Rsp struct {
 	Code int         `json:"code"`
 	Msg  string      `json:"msg"`
 	Data interface{} `json:"data,omitempty"`
 }
 
+// RspGetPageData is a general returning structure in `data` field for GetPage request
 type RspGetPageData struct {
 	Total int64         `json:"total"`
 	Hits  []interface{} `json:"hits"`
 }
 
+// Handler is a template function for Restful Handler
 type Handler func(vars map[string]string, query url.Values, body []byte) *Rsp
 
+// Register is a function to register handler to http mux
 func Register(method, pattern string, h Handler) {
 	handler := genHandler(h)
 	gCfg.Mux.HandleFunc(pattern, handler).Methods(method)

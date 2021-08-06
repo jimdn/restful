@@ -17,9 +17,9 @@ func RandString(n int) string {
 	return string(b)
 }
 
-// GenUniqueId is an function to gen a unique id with STRING type
+// GenUniqueID is an function to gen a unique id with STRING type
 // support objectid or uuid
-func GenUniqueId() string {
+func GenUniqueID() string {
 	if gCfg.DefaultIdGenerator == "objectid" {
 		return objectid.New().String()
 	}
@@ -184,48 +184,53 @@ func CheckObject(value interface{}) interface{} {
 	return nil
 }
 
-// IsEmptyBool
-func IsEmptyBool(d interface{}) bool {
-	if d == nil {
+// IsEmptyBool check whether value is empty
+// if value is nil or default value of bool, return true
+func IsEmptyBool(value interface{}) bool {
+	if value == nil {
 		return true
 	}
-	v, ok := d.(bool)
+	v, ok := value.(bool)
 	return ok && v == false
 }
 
-// IsEmptyNumber
-func IsEmptyNumber(d interface{}) bool {
-	if d == nil {
+// IsEmptyNumber check whether value is empty
+// if value is nil or default value of float64, return true
+func IsEmptyNumber(value interface{}) bool {
+	if value == nil {
 		return true
 	}
-	v, ok := d.(float64)
+	v, ok := value.(float64)
 	return ok && v == 0
 }
 
-// IsEmptyString
-func IsEmptyString(d interface{}) bool {
-	if d == nil {
+// IsEmptyString check whether value is empty
+// if value is nil or default value of string, return true
+func IsEmptyString(value interface{}) bool {
+	if value == nil {
 		return true
 	}
-	v, ok := d.(string)
+	v, ok := value.(string)
 	return ok && v == ""
 }
 
-// IsEmptyArray
-func IsEmptyArray(d interface{}) bool {
-	if d == nil {
+// IsEmptyArray check whether value is empty
+// if value is nil or empty array, return true
+func IsEmptyArray(value interface{}) bool {
+	if value == nil {
 		return true
 	}
-	v, ok := d.([]interface{})
+	v, ok := value.([]interface{})
 	return ok && len(v) == 0
 }
 
-// IsEmptyObject
-func IsEmptyObject(d interface{}) bool {
-	if d == nil {
+// IsEmptyObject check whether value is empty
+// if value is nil or empty object, return true
+func IsEmptyObject(value interface{}) bool {
+	if value == nil {
 		return true
 	}
-	switch v := d.(type) {
+	switch v := value.(type) {
 	case map[string]interface{}:
 		return len(v) == 0
 	case bson.M:
@@ -234,7 +239,7 @@ func IsEmptyObject(d interface{}) bool {
 	return false
 }
 
-// RemoveDupArray
+// RemoveDupArray remove duplicate elements
 func RemoveDupArray(s []string) []string {
 	m := make(map[string]bool)
 	for i := range s {

@@ -14,7 +14,7 @@ import (
 	"github.com/globalsign/mgo/bson"
 )
 
-// Processor
+// Processor is a set of configurations and handlers of a Restful resource
 type Processor struct {
 	// Business name, functions:
 	//   1. default value of TableName
@@ -70,7 +70,7 @@ type Processor struct {
 	// e.g.: /path?db=dbName&table=tableName
 	// default db name: restful
 	// default table name: ${TableName}
-	GetDbName  func(query url.Values) string
+	GetDbName    func(query url.Values) string
 	GetTableName func(query url.Values) string
 }
 
@@ -167,14 +167,14 @@ func (p *Processor) Init() error {
 // Load is a function to register handlers
 func (p *Processor) Load() {
 	path := p.URLPath
-	pathWithId := p.URLPath + "/{id}"
+	pathWithID := p.URLPath + "/{id}"
 	pathWithTrigger := p.URLPath + "/__trigger"
 	Register("POST", path, p.PostHandler)
-	Register("PUT", pathWithId, p.PutHandler)
-	Register("PATCH", pathWithId, p.PatchHandler)
-	Register("GET", pathWithId, p.GetHandler)
+	Register("PUT", pathWithID, p.PutHandler)
+	Register("PATCH", pathWithID, p.PatchHandler)
+	Register("GET", pathWithID, p.GetHandler)
 	Register("GET", path, p.GetPageHandler)
-	Register("DELETE", pathWithId, p.DeleteHandler)
+	Register("DELETE", pathWithID, p.DeleteHandler)
 	// TriggerHandler do something internal
 	Register("POST", pathWithTrigger, p.TriggerHandler)
 }
@@ -203,36 +203,36 @@ func (p *Processor) defaultGetTableName() func(query url.Values) string {
 func (p *Processor) defaultPost() Handler {
 	return func(vars map[string]string, query url.Values, body []byte) *Rsp {
 		begin := time.Now()
-		reqId := query.Get("reqid")
-		if reqId == "" {
-			reqId = "sys_" + RandString(8)
+		reqID := query.Get("reqid")
+		if reqID == "" {
+			reqID = "sys_" + RandString(8)
 		}
-		Log.Debugf("[req] %v POST %v query=%v", reqId, p.URLPath, query)
+		Log.Debugf("[req] %v POST %v query=%v", reqID, p.URLPath, query)
 
 		var err error
 		var info map[string]interface{}
 		if err = json.Unmarshal(body, &info); err != nil {
-			Log.Warnf("[rsp] %v POST %v unmarshal fail %v [%v]", reqId, p.URLPath, err, string(body))
+			Log.Warnf("[rsp] %v POST %v unmarshal fail %v [%v]", reqID, p.URLPath, err, string(body))
 			return genRsp(http.StatusBadRequest, "invalid Body", nil)
 		}
 
 		if id, ok := info["id"]; ok {
 			v := GetString(id)
 			if v == "" {
-				Log.Warnf("[rsp] %v POST %v custom id empty", reqId, p.URLPath)
+				Log.Warnf("[rsp] %v POST %v custom id empty", reqID, p.URLPath)
 				return genRsp(http.StatusBadRequest, "custom id empty", nil)
 			}
 			if len(v) > 128 {
-				Log.Warnf("[rsp] %v POST %v custom id too long", reqId, p.URLPath)
+				Log.Warnf("[rsp] %v POST %v custom id too long", reqID, p.URLPath)
 				return genRsp(http.StatusBadRequest, "custom id too long", nil)
 			}
 		} else {
-			info["id"] = GenUniqueId()
+			info["id"] = GenUniqueID()
 		}
 
 		err = p.FieldSet.CheckObject(info, false)
 		if err != nil {
-			Log.Warnf("[rsp] %v POST %v invalid field exists, biz=%v err=%v", reqId, p.URLPath, p.Biz, err)
+			Log.Warnf("[rsp] %v POST %v invalid field exists, biz=%v err=%v", reqID, p.URLPath, p.Biz, err)
 			return genRsp(http.StatusBadRequest, err.Error(), nil)
 		}
 		p.FieldSet.InReplace(&info)
@@ -249,7 +249,7 @@ func (p *Processor) defaultPost() Handler {
 		doc := p.FieldSet.InSort(&info)
 		err = dbc.Insert(&doc)
 		if err != nil {
-			Log.Warnf("[rsp] %v POST %v db access fail, err=%v", reqId, p.URLPath, err)
+			Log.Warnf("[rsp] %v POST %v db access fail, err=%v", reqID, p.URLPath, err)
 			if mgo.IsDup(err) {
 				return genRsp(http.StatusBadRequest, "duplicate id", nil)
 			}
@@ -261,7 +261,7 @@ func (p *Processor) defaultPost() Handler {
 		}
 		// ensure index
 		if p.Indexes != nil && len(p.Indexes) > 0 {
-			getIndexEnsureList().Push(&indexToEnsureStruct{
+			getIndexEnsureList().Push(&IndexToEnsureStruct{
 				DB:        p.GetDbName(query),
 				Table:     p.GetTableName(query),
 				Processor: p,
@@ -269,7 +269,7 @@ func (p *Processor) defaultPost() Handler {
 		}
 
 		costMs := time.Since(begin).Nanoseconds() / int64(time.Millisecond)
-		Log.Warnf("[rsp] %v success, cost %vms", reqId, costMs)
+		Log.Warnf("[rsp] %v success, cost %vms", reqID, costMs)
 		return genRsp(http.StatusOK, "post ok", map[string]interface{}{"id": info["_id"], "seq": info["seq"]})
 	}
 }
@@ -280,11 +280,11 @@ func (p *Processor) defaultPut() Handler {
 		id := vars["id"]
 
 		begin := time.Now()
-		reqId := query.Get("reqid")
-		if reqId == "" {
-			reqId = "sys_" + RandString(8)
+		reqID := query.Get("reqid")
+		if reqID == "" {
+			reqID = "sys_" + RandString(8)
 		}
-		Log.Debugf("[req] %v PUT %v/%v query=%v", reqId, p.URLPath, id, query)
+		Log.Debugf("[req] %v PUT %v/%v query=%v", reqID, p.URLPath, id, query)
 
 		var info map[string]interface{}
 		if err = json.Unmarshal(body, &info); err != nil {
@@ -294,12 +294,12 @@ func (p *Processor) defaultPut() Handler {
 
 		info["id"] = id
 		if len(id) > 128 {
-			Log.Warnf("[rsp] %v PUT %v/%v id too long", reqId, p.URLPath, id)
+			Log.Warnf("[rsp] %v PUT %v/%v id too long", reqID, p.URLPath, id)
 			return genRsp(http.StatusBadRequest, "id too long", nil)
 		}
 		err = p.FieldSet.CheckObject(info, false)
 		if err != nil {
-			Log.Warnf("[rsp] %v PUT %v/%v invalid field exists, biz=%v err=%v", reqId, p.URLPath, id, p.Biz, err)
+			Log.Warnf("[rsp] %v PUT %v/%v invalid field exists, biz=%v err=%v", reqID, p.URLPath, id, p.Biz, err)
 			return genRsp(http.StatusBadRequest, err.Error(), nil)
 		}
 		p.FieldSet.InReplace(&info)
@@ -331,14 +331,14 @@ func (p *Processor) defaultPut() Handler {
 				}
 			}
 		} else if err != mgo.ErrNotFound {
-			Log.Warnf("[rsp] %v PUT %v/%v db access fail, err=%v", reqId, p.URLPath, id, err)
+			Log.Warnf("[rsp] %v PUT %v/%v db access fail, err=%v", reqID, p.URLPath, id, err)
 			return genRsp(http.StatusInternalServerError, "db access fail", nil)
 		}
 
 		doc := p.FieldSet.InSort(&info)
 		_, err = dbc.Upsert(bson.M{"_id": id}, &doc)
 		if err != nil {
-			Log.Warnf("[rsp] %v PUT %v/%v db access fail, err=%v", reqId, p.URLPath, id, err)
+			Log.Warnf("[rsp] %v PUT %v/%v db access fail, err=%v", reqID, p.URLPath, id, err)
 			return genRsp(http.StatusInternalServerError, "db access fail", nil)
 		}
 
@@ -347,7 +347,7 @@ func (p *Processor) defaultPut() Handler {
 		}
 		// ensure index
 		if p.Indexes != nil && len(p.Indexes) > 0 {
-			getIndexEnsureList().Push(&indexToEnsureStruct{
+			getIndexEnsureList().Push(&IndexToEnsureStruct{
 				DB:        p.GetDbName(query),
 				Table:     p.GetTableName(query),
 				Processor: p,
@@ -355,7 +355,7 @@ func (p *Processor) defaultPut() Handler {
 		}
 
 		costMs := time.Since(begin).Nanoseconds() / int64(time.Millisecond)
-		Log.Warnf("[rsp] %v success, cost %vms", reqId, costMs)
+		Log.Warnf("[rsp] %v success, cost %vms", reqID, costMs)
 		return genRsp(http.StatusOK, "put ok", map[string]interface{}{"id": info["_id"], "seq": info["seq"]})
 	}
 }
@@ -366,21 +366,21 @@ func (p *Processor) defaultPatch() Handler {
 		id := vars["id"]
 
 		begin := time.Now()
-		reqId := query.Get("reqid")
-		if reqId == "" {
-			reqId = "sys_" + RandString(8)
+		reqID := query.Get("reqid")
+		if reqID == "" {
+			reqID = "sys_" + RandString(8)
 		}
-		Log.Debugf("[req] %v PATCH %v/%v query=%v", reqId, p.URLPath, id, query)
+		Log.Debugf("[req] %v PATCH %v/%v query=%v", reqID, p.URLPath, id, query)
 
 		var info map[string]interface{}
 		if err = json.Unmarshal(body, &info); err != nil {
-			Log.Warnf("[rsp] %v PATCH %v/%v unmarshal fail %v [%v]", reqId, p.URLPath, id, err, string(body))
+			Log.Warnf("[rsp] %v PATCH %v/%v unmarshal fail %v [%v]", reqID, p.URLPath, id, err, string(body))
 			return genRsp(http.StatusBadRequest, "invalid Body", nil)
 		}
 
 		err = p.FieldSet.CheckObject(info, true)
 		if err != nil {
-			Log.Warnf("[rsp] %v PATCH %v/%v invalid field exists, biz=%v err=%v", reqId, p.URLPath, id, p.Biz, err)
+			Log.Warnf("[rsp] %v PATCH %v/%v invalid field exists, biz=%v err=%v", reqID, p.URLPath, id, p.Biz, err)
 			return genRsp(http.StatusBadRequest, err.Error(), nil)
 		}
 		p.FieldSet.InReplace(&info)
@@ -392,7 +392,7 @@ func (p *Processor) defaultPatch() Handler {
 			ignoreSeq = true
 		}
 		if !ignoreSeq && seq == "" {
-			Log.Warnf("[rsp] %v PATCH %v/%v need seq", reqId, p.URLPath, id)
+			Log.Warnf("[rsp] %v PATCH %v/%v need seq", reqID, p.URLPath, id)
 			return genRsp(http.StatusBadRequest, "need seq", nil)
 		}
 
@@ -411,20 +411,20 @@ func (p *Processor) defaultPatch() Handler {
 		} else {
 			nextSeq, err2 := nextSeq(seq)
 			if err2 != nil {
-				Log.Warnf("[rsp] %v PATCH %v/%v invalid seq: %s", reqId, p.URLPath, id, seq)
+				Log.Warnf("[rsp] %v PATCH %v/%v invalid seq: %s", reqID, p.URLPath, id, seq)
 				return genRsp(http.StatusBadRequest, "invalid seq", nil)
 			}
 			info["seq"] = nextSeq
 			info["mtime"] = now
 			err = dbc.Update(bson.M{"_id": id, "seq": seq}, bson.M{"$set": info})
 			if err == mgo.ErrNotFound {
-				Log.Warnf("[rsp] %v PATCH %v/%v id not found or seq conflict", reqId, p.URLPath, id)
+				Log.Warnf("[rsp] %v PATCH %v/%v id not found or seq conflict", reqID, p.URLPath, id)
 				return genRsp(http.StatusBadRequest, "id not found or seq conflict", nil)
 			}
 		}
 
 		if err != nil {
-			Log.Warnf("[rsp] %v PATCH %v/%v db access fail, err=%v", reqId, p.URLPath, id, err)
+			Log.Warnf("[rsp] %v PATCH %v/%v db access fail, err=%v", reqID, p.URLPath, id, err)
 			return genRsp(http.StatusInternalServerError, "db access fail", nil)
 		}
 
@@ -433,7 +433,7 @@ func (p *Processor) defaultPatch() Handler {
 		}
 		// ensure index
 		if p.Indexes != nil && len(p.Indexes) > 0 {
-			getIndexEnsureList().Push(&indexToEnsureStruct{
+			getIndexEnsureList().Push(&IndexToEnsureStruct{
 				DB:        p.GetDbName(query),
 				Table:     p.GetTableName(query),
 				Processor: p,
@@ -441,7 +441,7 @@ func (p *Processor) defaultPatch() Handler {
 		}
 
 		costMs := time.Since(begin).Nanoseconds() / int64(time.Millisecond)
-		Log.Warnf("[rsp] %v success, cost %vms", reqId, costMs)
+		Log.Warnf("[rsp] %v success, cost %vms", reqID, costMs)
 		if ignoreSeq {
 			return genRsp(http.StatusOK, "patch ok", map[string]interface{}{"id": id})
 		}
@@ -455,11 +455,11 @@ func (p *Processor) defaultGet() Handler {
 		id := vars["id"]
 
 		begin := time.Now()
-		reqId := query.Get("reqid")
-		if reqId == "" {
-			reqId = "sys_" + RandString(8)
+		reqID := query.Get("reqid")
+		if reqID == "" {
+			reqID = "sys_" + RandString(8)
 		}
-		Log.Debugf("[req] %v GET %v/%v query=%v", reqId, p.URLPath, id, query)
+		Log.Debugf("[req] %v GET %v/%v query=%v", reqID, p.URLPath, id, query)
 
 		// build select
 		selector := make(map[string]interface{})
@@ -467,12 +467,12 @@ func (p *Processor) defaultGet() Handler {
 			var selSlice []string
 			err := json.Unmarshal([]byte(query.Get("select")), &selSlice)
 			if err != nil {
-				Log.Warnf("[rsp] %v GET %v/%v unmarshal select error: %v", reqId, p.URLPath, id, err)
+				Log.Warnf("[rsp] %v GET %v/%v unmarshal select error: %v", reqID, p.URLPath, id, err)
 				return genRsp(http.StatusBadRequest, "select invalid", nil)
 			}
 			err = p.FieldSet.BuildSelectObj(selSlice, selector)
 			if err != nil {
-				Log.Warnf("[rsp] %v GET %v/%v select param invalid, %v", reqId, p.URLPath, id, err)
+				Log.Warnf("[rsp] %v GET %v/%v select param invalid, %v", reqID, p.URLPath, id, err)
 				return genRsp(http.StatusBadRequest, err.Error(), nil)
 			}
 		}
@@ -480,7 +480,7 @@ func (p *Processor) defaultGet() Handler {
 
 		// ensure index
 		if p.Indexes != nil && len(p.Indexes) > 0 {
-			getIndexEnsureList().Push(&indexToEnsureStruct{
+			getIndexEnsureList().Push(&IndexToEnsureStruct{
 				DB:        p.GetDbName(query),
 				Table:     p.GetTableName(query),
 				Processor: p,
@@ -494,7 +494,7 @@ func (p *Processor) defaultGet() Handler {
 		var info map[string]interface{}
 		err = dbc.Find(bson.M{"_id": id}).Select(selector).One(&info)
 		if err != nil {
-			Log.Warnf("[rsp] %v GET %v/%v get id=%s error, %v", reqId, p.URLPath, id, id, err)
+			Log.Warnf("[rsp] %v GET %v/%v get id=%s error, %v", reqID, p.URLPath, id, id, err)
 			if err == mgo.ErrNotFound {
 				return genRsp(http.StatusNotFound, "id not found", nil)
 			}
@@ -503,7 +503,7 @@ func (p *Processor) defaultGet() Handler {
 		p.FieldSet.OutReplace(&info)
 
 		costMs := time.Since(begin).Nanoseconds() / int64(time.Millisecond)
-		Log.Warnf("[rsp] %v success, cost %vms", reqId, costMs)
+		Log.Warnf("[rsp] %v success, cost %vms", reqID, costMs)
 		return genRsp(http.StatusOK, "get ok", info)
 	}
 }
@@ -511,24 +511,24 @@ func (p *Processor) defaultGet() Handler {
 func (p *Processor) defaultGetPage() Handler {
 	return func(vars map[string]string, query url.Values, body []byte) *Rsp {
 		begin := time.Now()
-		reqId := query.Get("reqid")
-		if reqId == "" {
-			reqId = "sys_" + RandString(8)
+		reqID := query.Get("reqid")
+		if reqID == "" {
+			reqID = "sys_" + RandString(8)
 		}
-		Log.Debugf("[req] %v GET PAGE %v query=%v", reqId, p.URLPath, query)
+		Log.Debugf("[req] %v GET PAGE %v query=%v", reqID, p.URLPath, query)
 
 		var err error
 		size := 0
 		page := 0
 		size, err = strconv.Atoi(query.Get("size"))
 		if err != nil || (size <= 0 && size != -1) {
-			Log.Warnf("[rsp] %v GET %v size error", reqId, p.URLPath)
+			Log.Warnf("[rsp] %v GET %v size error", reqID, p.URLPath)
 			return genRsp(http.StatusBadRequest, "need size or size invalid", nil)
 		}
 
 		page, err = strconv.Atoi(query.Get("page"))
 		if err != nil || page <= 0 {
-			Log.Warnf("[rsp] %v GET %v page error", reqId, p.URLPath)
+			Log.Warnf("[rsp] %v GET %v page error", reqID, p.URLPath)
 			return genRsp(http.StatusBadRequest, "need page or page invalid", nil)
 		}
 
@@ -538,12 +538,12 @@ func (p *Processor) defaultGetPage() Handler {
 			var filter map[string]interface{}
 			err := json.Unmarshal([]byte(query.Get("filter")), &filter)
 			if err != nil {
-				Log.Warnf("[rsp] %v GET %v unmarshal filter error: %v", reqId, p.URLPath, err)
+				Log.Warnf("[rsp] %v GET %v unmarshal filter error: %v", reqID, p.URLPath, err)
 				return genRsp(http.StatusBadRequest, "filter invalid", nil)
 			}
 			err = p.FieldSet.BuildFilterObj(filter, condition)
 			if err != nil {
-				Log.Warnf("[rsp] %v GET %v filter param invalid, %v", reqId, p.URLPath, err)
+				Log.Warnf("[rsp] %v GET %v filter param invalid, %v", reqID, p.URLPath, err)
 				return genRsp(http.StatusBadRequest, err.Error(), nil)
 			}
 		}
@@ -551,12 +551,12 @@ func (p *Processor) defaultGetPage() Handler {
 			var rang map[string]interface{}
 			err := json.Unmarshal([]byte(query.Get("range")), &rang)
 			if err != nil {
-				Log.Warnf("[rsp] %v GET %v unmarshal range error: %v", reqId, p.URLPath, err)
+				Log.Warnf("[rsp] %v GET %v unmarshal range error: %v", reqID, p.URLPath, err)
 				return genRsp(http.StatusBadRequest, "range invalid", nil)
 			}
 			err = p.FieldSet.BuildRangeObj(rang, condition)
 			if err != nil {
-				Log.Warnf("[rsp] %v GET %v range param invalid, %v", reqId, p.URLPath, err)
+				Log.Warnf("[rsp] %v GET %v range param invalid, %v", reqID, p.URLPath, err)
 				return genRsp(http.StatusBadRequest, err.Error(), nil)
 			}
 		}
@@ -564,12 +564,12 @@ func (p *Processor) defaultGetPage() Handler {
 			var in map[string]interface{}
 			err := json.Unmarshal([]byte(query.Get("in")), &in)
 			if err != nil {
-				Log.Warnf("[rsp] %v GET %v unmarshal in error: %v", reqId, p.URLPath, err)
+				Log.Warnf("[rsp] %v GET %v unmarshal in error: %v", reqID, p.URLPath, err)
 				return genRsp(http.StatusBadRequest, "in invalid", nil)
 			}
 			err = p.FieldSet.BuildInObj(in, condition)
 			if err != nil {
-				Log.Warnf("[rsp] %v GET %v in param invalid, %v", reqId, p.URLPath, err)
+				Log.Warnf("[rsp] %v GET %v in param invalid, %v", reqID, p.URLPath, err)
 				return genRsp(http.StatusBadRequest, err.Error(), nil)
 			}
 		}
@@ -577,12 +577,12 @@ func (p *Processor) defaultGetPage() Handler {
 			var nin map[string]interface{}
 			err := json.Unmarshal([]byte(query.Get("nin")), &nin)
 			if err != nil {
-				Log.Warnf("[rsp] %v GET %v unmarshal nin error: %v", reqId, p.URLPath, err)
+				Log.Warnf("[rsp] %v GET %v unmarshal nin error: %v", reqID, p.URLPath, err)
 				return genRsp(http.StatusBadRequest, "nin invalid", nil)
 			}
 			err = p.FieldSet.BuildNinObj(nin, condition)
 			if err != nil {
-				Log.Warnf("[rsp] %v GET %v nin param invalid, %v", reqId, p.URLPath, err)
+				Log.Warnf("[rsp] %v GET %v nin param invalid, %v", reqID, p.URLPath, err)
 				return genRsp(http.StatusBadRequest, err.Error(), nil)
 			}
 		}
@@ -590,12 +590,12 @@ func (p *Processor) defaultGetPage() Handler {
 			var all map[string]interface{}
 			err := json.Unmarshal([]byte(query.Get("all")), &all)
 			if err != nil {
-				Log.Warnf("[rsp] %v GET %v unmarshal all error: %v", reqId, p.URLPath, err)
+				Log.Warnf("[rsp] %v GET %v unmarshal all error: %v", reqID, p.URLPath, err)
 				return genRsp(http.StatusBadRequest, "all invalid", nil)
 			}
 			err = p.FieldSet.BuildAllObj(all, condition)
 			if err != nil {
-				Log.Warnf("[rsp] %v GET %v all param invalid, %v", reqId, p.URLPath, err)
+				Log.Warnf("[rsp] %v GET %v all param invalid, %v", reqID, p.URLPath, err)
 				return genRsp(http.StatusBadRequest, err.Error(), nil)
 			}
 		}
@@ -603,12 +603,12 @@ func (p *Processor) defaultGetPage() Handler {
 			var or []interface{}
 			err := json.Unmarshal([]byte(query.Get("or")), &or)
 			if err != nil {
-				Log.Warnf("[rsp] %v GET %v unmarshal or error: %v", reqId, p.URLPath, err)
+				Log.Warnf("[rsp] %v GET %v unmarshal or error: %v", reqID, p.URLPath, err)
 				return genRsp(http.StatusBadRequest, "or invalid", nil)
 			}
 			err = p.FieldSet.BuildOrObj(or, condition)
 			if err != nil {
-				Log.Warnf("[rsp] %v GET %v or param invalid, %v", reqId, p.URLPath, err)
+				Log.Warnf("[rsp] %v GET %v or param invalid, %v", reqID, p.URLPath, err)
 				return genRsp(http.StatusBadRequest, err.Error(), nil)
 			}
 		}
@@ -620,24 +620,24 @@ func (p *Processor) defaultGetPage() Handler {
 					regexSearchByDB = true
 					err = p.FieldSet.BuildRegexSearchObj(search, p.RegexSearchFields, condition)
 					if err != nil {
-						Log.Warnf("[rsp] %v GET %v build regex search condition error: %v", reqId, p.URLPath, err)
+						Log.Warnf("[rsp] %v GET %v build regex search condition error: %v", reqID, p.URLPath, err)
 						return genRsp(http.StatusBadRequest, "build regex search condition error", nil)
 					}
 				}
 				if gCfg.EsEnable {
 					ids, err := esSearch(p.GetDbName(query), p.GetTableName(query), search, 2000, 0)
 					if err != nil {
-						Log.Warnf("[rsp] %v GET %v EsSearch err, %v", reqId, p.URLPath, err)
+						Log.Warnf("[rsp] %v GET %v EsSearch err, %v", reqID, p.URLPath, err)
 						return genRsp(http.StatusInternalServerError, err.Error(), nil)
 					}
 					if !regexSearchByDB {
 						if len(ids) == 0 {
 							infos := make([]interface{}, 0)
-							Log.Debugf("[rsp] %v GET %v search no results", reqId, p.URLPath)
+							Log.Debugf("[rsp] %v GET %v search no results", reqID, p.URLPath)
 							return genRsp(http.StatusOK, "no results found", RspGetPageData{Total: 0, Hits: infos})
 						}
 						if _, exist := condition["id"]; exist {
-							Log.Warnf("[rsp] %v GET %v search id condition conflict", reqId, p.URLPath)
+							Log.Warnf("[rsp] %v GET %v search id condition conflict", reqID, p.URLPath)
 							return genRsp(http.StatusBadRequest, "search id condition conflict", nil)
 						}
 						condition["id"] = map[string]interface{}{"$in": ids}
@@ -651,7 +651,7 @@ func (p *Processor) defaultGetPage() Handler {
 									orCondValue = append(orCondValue, cond)
 									condition["$or"] = orCondValue
 								default:
-									Log.Warnf("[rsp] %v GET %v search condition conflict", reqId, p.URLPath)
+									Log.Warnf("[rsp] %v GET %v search condition conflict", reqID, p.URLPath)
 									return genRsp(http.StatusBadRequest, "search condition conflict", nil)
 								}
 							}
@@ -659,7 +659,7 @@ func (p *Processor) defaultGetPage() Handler {
 					}
 				}
 				if !regexSearchByDB && !gCfg.EsEnable {
-					Log.Warnf("[rsp] %v GET %v search not config", reqId, p.URLPath)
+					Log.Warnf("[rsp] %v GET %v search not config", reqID, p.URLPath)
 					return genRsp(http.StatusInternalServerError, "search not config", nil)
 				}
 			}
@@ -700,11 +700,11 @@ func (p *Processor) defaultGetPage() Handler {
 		}
 		p.FieldSet.InReplace(&selector)
 
-		Log.Debugf("[req] %v condition=%v order=%v select=%v", reqId, condition, orderFields, selector)
+		Log.Debugf("[req] %v condition=%v order=%v select=%v", reqID, condition, orderFields, selector)
 
 		// ensure index
 		if p.Indexes != nil && len(p.Indexes) > 0 {
-			getIndexEnsureList().Push(&indexToEnsureStruct{
+			getIndexEnsureList().Push(&IndexToEnsureStruct{
 				DB:        p.GetDbName(query),
 				Table:     p.GetTableName(query),
 				Processor: p,
@@ -738,14 +738,14 @@ func (p *Processor) defaultGetPage() Handler {
 			err = fmt.Errorf("unknown")
 		}
 		if err != nil {
-			Log.Warnf("[rsp] %v GET %v get page results error: %v", reqId, p.URLPath, err)
+			Log.Warnf("[rsp] %v GET %v get page results error: %v", reqID, p.URLPath, err)
 			return genRsp(http.StatusInternalServerError, "db access fail", nil)
 		}
 
 		p.FieldSet.OutReplaceArray(infos)
 
 		costMs := time.Since(begin).Nanoseconds() / int64(time.Millisecond)
-		Log.Warnf("[rsp] %v success, cost %vms", reqId, costMs)
+		Log.Warnf("[rsp] %v success, cost %vms", reqID, costMs)
 		return genRsp(http.StatusOK, "get page ok", RspGetPageData{Total: int64(total), Hits: infos})
 	}
 }
@@ -756,11 +756,11 @@ func (p *Processor) defaultDelete() Handler {
 		id := vars["id"]
 
 		begin := time.Now()
-		reqId := query.Get("reqid")
-		if reqId == "" {
-			reqId = "sys_" + RandString(8)
+		reqID := query.Get("reqid")
+		if reqID == "" {
+			reqID = "sys_" + RandString(8)
 		}
-		Log.Debugf("[req] %v DELETE %v/%v query=%v", reqId, p.URLPath, id, query)
+		Log.Debugf("[req] %v DELETE %v/%v query=%v", reqID, p.URLPath, id, query)
 
 		dbs := gCfg.MgoSess.Clone()
 		defer dbs.Close()
@@ -768,7 +768,7 @@ func (p *Processor) defaultDelete() Handler {
 
 		err = dbc.Remove(bson.M{"_id": id})
 		if err != nil {
-			Log.Warnf("[rsp] %v DELETE %v/%v delete id=%s error, %v", reqId, p.URLPath, id, err)
+			Log.Warnf("[rsp] %v DELETE %v/%v delete id=%s error, %v", reqID, p.URLPath, id, err)
 			if err == mgo.ErrNotFound {
 				return genRsp(http.StatusNotFound, "id not found", nil)
 			}
@@ -780,7 +780,7 @@ func (p *Processor) defaultDelete() Handler {
 		}
 		// ensure index
 		if p.Indexes != nil && len(p.Indexes) > 0 {
-			getIndexEnsureList().Push(&indexToEnsureStruct{
+			getIndexEnsureList().Push(&IndexToEnsureStruct{
 				DB:        p.GetDbName(query),
 				Table:     p.GetTableName(query),
 				Processor: p,
@@ -788,7 +788,7 @@ func (p *Processor) defaultDelete() Handler {
 		}
 
 		costMs := time.Since(begin).Nanoseconds() / int64(time.Millisecond)
-		Log.Warnf("[rsp] %v success, cost %vms", reqId, costMs)
+		Log.Warnf("[rsp] %v success, cost %vms", reqID, costMs)
 		return genRsp(http.StatusOK, "delete ok", map[string]interface{}{"id": id})
 	}
 }
@@ -796,29 +796,29 @@ func (p *Processor) defaultDelete() Handler {
 func (p *Processor) defaultTrigger() Handler {
 	return func(vars map[string]string, query url.Values, body []byte) *Rsp {
 		begin := time.Now()
-		reqId := query.Get("reqid")
-		if reqId == "" {
-			reqId = "sys_" + RandString(8)
+		reqID := query.Get("reqid")
+		if reqID == "" {
+			reqID = "sys_" + RandString(8)
 		}
-		Log.Debugf("[req] %v POST %v/__trigger query=%v", reqId, p.URLPath, query)
+		Log.Debugf("[req] %v POST %v/__trigger query=%v", reqID, p.URLPath, query)
 
 		var err error
 		var info map[string]interface{}
 		if err = json.Unmarshal(body, &info); err != nil {
-			Log.Warnf("[rsp] %v POST %v/__trigger unmarshal fail %v [%v]", reqId, p.URLPath, err, string(body))
+			Log.Warnf("[rsp] %v POST %v/__trigger unmarshal fail %v [%v]", reqID, p.URLPath, err, string(body))
 			return genRsp(http.StatusBadRequest, "invalid Body", nil)
 		}
 
 		typ := GetString(info["type"])
 		if typ == "" {
-			Log.Warnf("[rsp] %v POST %v/__trigger trigger req need specified type", reqId, p.URLPath, err, string(body))
+			Log.Warnf("[rsp] %v POST %v/__trigger trigger req need specified type", reqID, p.URLPath, err, string(body))
 			return genRsp(http.StatusBadRequest, "need type", nil)
 		}
 		switch typ {
 		case "search":
 			id := GetString(info["id"])
 			if id == "" {
-				Log.Warnf("[rsp] %v POST %v/__trigger search trigger req need specified id", reqId, p.URLPath, err, string(body))
+				Log.Warnf("[rsp] %v POST %v/__trigger search trigger req need specified id", reqID, p.URLPath, err, string(body))
 				return genRsp(http.StatusBadRequest, "need id", nil)
 			}
 			if p.OnWriteDone != nil {
@@ -827,12 +827,12 @@ func (p *Processor) defaultTrigger() Handler {
 				go p.OnWriteDone("PATCH", vars, query, nil)
 			}
 		default:
-			Log.Warnf("[rsp] %v POST %v/__trigger trigger type: %v unknown", reqId, p.URLPath, typ)
+			Log.Warnf("[rsp] %v POST %v/__trigger trigger type: %v unknown", reqID, p.URLPath, typ)
 			return genRsp(http.StatusBadRequest, fmt.Sprintf("trigger type: %v unknown", typ), nil)
 		}
 
 		costMs := time.Since(begin).Nanoseconds() / int64(time.Millisecond)
-		Log.Warnf("[rsp] %v success, cost %vms", reqId, costMs)
+		Log.Warnf("[rsp] %v success, cost %vms", reqID, costMs)
 		return genRsp(http.StatusOK, "trigger ok", nil)
 	}
 }

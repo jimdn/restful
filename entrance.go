@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// GlobalConfig is a config to init restful service
 type GlobalConfig struct {
 	Mux                *mux.Router  // gorilla/mux
 	MgoSess            *mgo.Session // mongodb session
@@ -23,6 +24,7 @@ type GlobalConfig struct {
 
 var gCfg GlobalConfig
 
+// Init is a function to init restful service
 func Init(cfg *GlobalConfig, processors *[]Processor) error {
 	if cfg == nil || cfg.Mux == nil || cfg.MgoSess == nil {
 		return errors.New("cfg param invalid")
@@ -47,9 +49,8 @@ func Init(cfg *GlobalConfig, processors *[]Processor) error {
 		p := &(*processors)[i]
 		if _, ok := bizMap[p.Biz]; ok {
 			return fmt.Errorf("biz: %s conflict", p.Biz)
-		} else {
-			bizMap[p.Biz] = true
 		}
+		bizMap[p.Biz] = true
 
 		err := p.Init()
 		if err != nil {
